@@ -6,9 +6,7 @@ plugins {
 
 android {
     namespace = "com.kimLunation.moon"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.kimLunation.moon"
@@ -59,9 +57,10 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    
     // Retrofit for networking
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
-// OkHttp for HTTP client
+    // OkHttp for HTTP client
     implementation("com.squareup.okhttp3:logging-interceptor:4.9.0")
 }

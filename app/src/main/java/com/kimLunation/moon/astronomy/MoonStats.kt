@@ -41,20 +41,36 @@ object MoonStats {
      */
     fun moonName(now: Instant): String {
         val zdt = ZonedDateTime.ofInstant(now, VICTORIA_ZONE)
-        return when (zdt.monthValue) {
-            1 -> "Wolf Moon"
-            2 -> "Snow Moon"
-            3 -> "Worm Moon"
-            4 -> "Pink Moon"
-            5 -> "Flower Moon"
-            6 -> "Strawberry Moon"
-            7 -> "Buck Moon"
-            8 -> "Sturgeon Moon"
-            9 -> "Harvest Moon"
-            10 -> "Hunter's Moon"
-            11 -> "Beaver Moon"
-            12 -> "Cold Moon"
-            else -> "Full Moon"
+        val phase = phaseFraction(now)
+
+        // Define a small window around the full moon (phase = 0.5)
+        if (phase > 0.47 && phase < 0.53) {
+            return when (zdt.monthValue) {
+                1 -> "Wolf Moon"
+                2 -> "Snow Moon"
+                3 -> "Worm Moon"
+                4 -> "Pink Moon"
+                5 -> "Flower Moon"
+                6 -> "Strawberry Moon"
+                7 -> "Buck Moon"
+                8 -> "Sturgeon Moon"
+                9 -> "Harvest Moon"
+                10 -> "Hunter's Moon"
+                11 -> "Beaver Moon"
+                12 -> "Cold Moon"
+                else -> "Full Moon"
+            }
+        } else {
+            // Use standard phase names for other times
+            return when {
+                phase < 0.03 || phase > 0.97 -> "New Moon"
+                phase < 0.25 -> "Waxing Crescent"
+                phase < 0.47 -> "Waxing Gibbous"
+                phase < 0.53 -> "Full Moon" // Already covered, but for completeness
+                phase < 0.75 -> "Waning Gibbous"
+                phase < 0.97 -> "Waning Crescent"
+                else -> "New Moon"
+            }
         }
     }
 
