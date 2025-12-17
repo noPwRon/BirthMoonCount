@@ -6,8 +6,6 @@ import android.graphics.Shader
 import android.os.Build
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.*
@@ -94,48 +92,48 @@ fun MoonDiskEngine(
     LaunchedEffect(Unit) {
         while (isActive) {
             now = Instant.now()
-            delay(60000) 
+            delay(60000)
         }
     }
 
     // --- Astronomical Calculations ---
     val phaseResult = remember(now) { MoonPhase.compute(now) }
-    
+
     val orientationDeg = remember(now) {
         MoonOrientation.terminatorRotationDegSkyMode(
-            now, 
-            KimConfig.OBS_LAT, 
+            now,
+            KimConfig.OBS_LAT,
             KimConfig.OBS_LON
         )
     }
-    
+
     // --- Shader Preparation ---
     val moonBitmap = ImageBitmap.imageResource(id = R.drawable.moon_color_2k)
-    
+
     val runtimeShader = remember(moonBitmap, phaseResult.fraction, orientationDeg) {
         if (Build.VERSION.SDK_INT >= 33) {
             // 1. Convert Orientation Angle (Degrees) to Radians (Chi).
             val chi = Math.toRadians(-orientationDeg)
-            
+
             // 2. Calculate Phase Angle (Psi).
             val k = phaseResult.fraction.coerceIn(0.0, 1.0)
             val psi = acos(2.0 * k - 1.0)
-            
+
             // 3. Compute Sun Direction Vector.
             val sunX = sin(psi) * sin(chi)
             val sunY = sin(psi) * cos(chi)
             val sunZ = cos(psi)
-            
+
             // 4. Setup RuntimeShader
             val shader = RuntimeShader(MOON_SHADER_SRC)
             val androidBitmap = moonBitmap.asAndroidBitmap()
             val bitmapShader = BitmapShader(androidBitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP)
-            
+
             shader.setInputShader("uTexture", bitmapShader)
             shader.setFloatUniform("resolution", androidBitmap.width.toFloat(), androidBitmap.height.toFloat()) // Initial guess
             shader.setFloatUniform("texSize", androidBitmap.width.toFloat(), androidBitmap.height.toFloat())
             shader.setFloatUniform("sunDir", sunX.toFloat(), sunY.toFloat(), sunZ.toFloat())
-            
+
             shader
         } else {
             null

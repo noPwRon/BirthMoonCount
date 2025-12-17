@@ -3,18 +3,27 @@ package com.kimLunation.moon
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,15 +32,30 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kimLunation.moon.ui.HudPlaque
 import com.kimLunation.moon.ui.MoonDiskEngine
 import kotlin.math.roundToInt
+import com.kimLunation.moon.astronomy.KimConfig
+import com.kimLunation.moon.astronomy.MoonFullMoonsMeeus
+import com.kimLunation.moon.ui.HudLayerRes
+import java.time.Instant
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+
+
+enum class DebugHudElement {
+    DIGITS, ILLUMINATION, MOON_NAME
+}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -49,32 +73,53 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun MoonScene() {
     val context = LocalContext.current
+    val density = LocalDensity.current
 
-    // UI State for Debug Mode
+    var now by remember { mutableStateOf(Instant.now()) }
+    LaunchedEffect(Unit) {
+        while (isActive) {
+            now = Instant.now()
+            delay(60000)
+        }
+    }
+
+    val fullMoonCount = remember(now) {
+        MoonFullMoonsMeeus.countFullMoons(KimConfig.BIRTH_INSTANT, now)
+    }
+
+
+    // --- Debug State ---
     var isDebugMode by remember { mutableStateOf(false) }
+    var selectedHudElement by remember { mutableStateOf(DebugHudElement.DIGITS) }
 
-    // Dynamic Sizing State - default values are now finalized.
-    var astrolabeSizeDp by remember { mutableStateOf(505f) }
-    var moonSizeDp by remember { mutableStateOf(281f) }
-    
-    // Alpha is now 1.0f always (removed transparency reduction)
+    // --- HUD Object Offsets (for debug tuning) ---
+    var digitsOffset by remember { mutableStateOf(DpOffset(0.dp, 0.dp)) }
+    var illumOffset by remember { mutableStateOf(DpOffset(0.dp, 0.dp)) }
+    var nameOffset by remember { mutableStateOf(DpOffset(0.dp, 0.dp)) }
+
+    // --- Finalized Scene Sizes ---
+    val astrolabeSizeDp = 505f
+    val moonSizeDp = 281f
+    val hudScale = 1.0f
+    val hudOffsetY = 35.dp
     val astrolabeAlpha = 1.0f
 
-    // Phone Tilt for Moon Orientation
+    // --- Phone & Animation State ---
     val rollDeg by rememberPhoneRollDegrees(context)
-    
-    // Gestures for sizing (Only in Debug Mode)
+
+    // --- Gestures for Debug Mode ---
     val gestureModifier = if (isDebugMode) {
         Modifier.pointerInput(Unit) {
             detectDragGestures { change, dragAmount ->
                 change.consume()
-                // Vertical drag -> Adjust Astrolabe Size
-                val dy = -dragAmount.y // Drag up to increase
-                astrolabeSizeDp = (astrolabeSizeDp + dy).coerceIn(400f, 1000f)
-                
-                // Horizontal drag -> Adjust Moon Size
-                val dx = dragAmount.x
-                moonSizeDp = (moonSizeDp + dx).coerceIn(100f, 500f)
+                val dx = with(density) { dragAmount.x.toDp() }
+                val dy = with(density) { dragAmount.y.toDp() }
+
+                when (selectedHudElement) {
+                    DebugHudElement.DIGITS -> digitsOffset = DpOffset(digitsOffset.x + dx, digitsOffset.y + dy)
+                    DebugHudElement.ILLUMINATION -> illumOffset = DpOffset(illumOffset.x + dx, illumOffset.y + dy)
+                    DebugHudElement.MOON_NAME -> nameOffset = DpOffset(nameOffset.x + dx, nameOffset.y + dy)
+                }
             }
         }
     } else {
@@ -86,40 +131,53 @@ fun MoonScene() {
             .fillMaxSize()
             .then(gestureModifier)
     ) {
-        // 1. Starfield Background (Bottom)
-        Image(
-            painter = painterResource(id = R.drawable.starfield_birth_malaga),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
+        // --- SCENE LAYERS ---
+        Image(painter = painterResource(id = R.drawable.starfield_birth_malaga), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
 
-        // 2. Moon Disk (Middle)
         Box(modifier = Modifier.align(Alignment.Center)) {
-            MoonDiskEngine(
-                modifier = Modifier
-                    .size(moonSizeDp.dp)
-                    .rotate(-rollDeg) // Compensate for phone roll
+            MoonDiskEngine(modifier = Modifier.size(moonSizeDp.dp).rotate(-rollDeg))
+        }
+
+        Image(painter = painterResource(id = R.drawable.astrolabe_ring), contentDescription = null, modifier = Modifier.align(Alignment.Center).size(astrolabeSizeDp.dp).alpha(astrolabeAlpha), contentScale = ContentScale.Fit)
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(200.dp)
+                .offset(y = hudOffsetY)
+                .scale(hudScale)
+        ) {
+            HudPlaque(
+                modifier = Modifier.fillMaxSize(),
+                digitsOffset = digitsOffset,
+                illumOffset = illumOffset,
+                nameOffset = nameOffset,
+                lunationCount = fullMoonCount,
+                layers = HudLayerRes.fromProjectAssets(),
+                contentScale = ContentScale.Fit,
+                digitHeight = 50.dp, // Default height for digit tiles
+                digitSpacing = 2.dp   // Spacing between digit ti
             )
         }
 
-        // 3. Astrolabe Ring (Top)
-        Image(
-            painter = painterResource(id = R.drawable.astrolabe_ring),
-            contentDescription = null,
-            modifier = Modifier
-                .align(Alignment.Center)
-                .size(astrolabeSizeDp.dp)
-                .alpha(astrolabeAlpha),
-            contentScale = ContentScale.Fit
-        )
-
-        // 4. Debug Readout (Top Left)
+        // --- DEBUG UI ---
         Column(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(16.dp)
-                .clickable { isDebugMode = !isDebugMode }
+                .clickable {
+                    if (!isDebugMode) {
+                        isDebugMode = true
+                    } else {
+                        // Cycle through elements to adjust
+                        selectedHudElement = when(selectedHudElement) {
+                            DebugHudElement.DIGITS -> DebugHudElement.ILLUMINATION
+                            DebugHudElement.ILLUMINATION -> DebugHudElement.MOON_NAME
+                            DebugHudElement.MOON_NAME -> DebugHudElement.DIGITS
+                        }
+                    }
+                }
         ) {
             Text(
                 text = "DEBUG: ${if (isDebugMode) "ON" else "OFF"}",
@@ -127,26 +185,10 @@ fun MoonScene() {
                 fontSize = 16.sp
             )
             if (isDebugMode) {
-                Text(
-                    text = "Astrolabe Size: ${astrolabeSizeDp.roundToInt()} dp",
-                    color = Color.White,
-                    fontSize = 12.sp
-                )
-                Text(
-                    text = "Moon Size: ${moonSizeDp.roundToInt()} dp",
-                    color = Color.White,
-                    fontSize = 12.sp
-                )
-                 Text(
-                    text = "Fit Ratio: %.2f".format(moonSizeDp / astrolabeSizeDp),
-                    color = Color.Yellow,
-                    fontSize = 12.sp
-                )
-                Text(
-                    text = "Roll: ${rollDeg.toInt()}°",
-                    color = Color.Yellow,
-                    fontSize = 12.sp
-                )
+                Text(text = "Selected: $selectedHudElement", color = Color.Yellow, fontSize = 12.sp)
+                Text(text = "Digits Offset: (${digitsOffset.x.value.roundToInt()}, ${digitsOffset.y.value.roundToInt()})", color = Color.White, fontSize = 12.sp)
+                Text(text = "Illum Offset: (${illumOffset.x.value.roundToInt()}, ${illumOffset.y.value.roundToInt()})", color = Color.White, fontSize = 12.sp)
+                Text(text = "Name Offset: (${nameOffset.x.value.roundToInt()}, ${nameOffset.y.value.roundToInt()})", color = Color.White, fontSize = 12.sp)
             }
         }
     }

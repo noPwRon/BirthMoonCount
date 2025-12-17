@@ -41,9 +41,9 @@ object AstrolabeImageEngine {
             // Sample 4 corners to establish the "background key"
             // We assume the corners represent the background to be removed.
             val c1 = pixels[0]
-            val c2 = pixels[w - 1]
-            val c3 = pixels[(h - 1) * w]
-            val c4 = pixels[(h - 1) * w + (w - 1)]
+            pixels[w - 1]
+            pixels[(h - 1) * w]
+            pixels[(h - 1) * w + (w - 1)]
 
             // Use Top-Left corner as the primary key reference
             val keyR = Color.red(c1)
