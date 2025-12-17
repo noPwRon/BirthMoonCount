@@ -1,5 +1,6 @@
 package com.kimLunation.moon.ui
 
+
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
@@ -17,6 +18,10 @@ import androidx.compose.ui.unit.dp
 import com.kimLunation.moon.DpOffset
 import com.kimLunation.moon.R
 import kotlin.math.abs
+import androidx.compose.ui.draw.scale
+
+
+
 
 data class HudLayerRes(
     @DrawableRes val hudPlaque: Int = 0,
@@ -40,11 +45,10 @@ data class HudLayerRes(
     companion object {
         fun fromProjectAssets(): HudLayerRes = HudLayerRes(
             hudPlaque = R.drawable.hud_plaque,
-            
             illumDrawable = 0, // Placeholder
             moonInDrawable = 0, // Placeholder
 
-            lunationBorder = 0, // Placeholder
+            lunationBorder = R.drawable.lunation_border, // Placeholder
             illumBorder = R.drawable.illum_border,
             moonInBorder = R.drawable.moon_in_border,
 
@@ -66,10 +70,14 @@ fun HudPlaque(
     lunationCount: Int,
     layers: HudLayerRes = HudLayerRes.fromProjectAssets(),
     contentScale: ContentScale = ContentScale.Fit,
-
-    // Counter sizing knobs
     digitHeight: Dp = 44.dp,
-    digitSpacing: Dp = 0.dp
+    digitSpacing: Dp = 0.dp,
+    digitScale: Float = 1.0f,
+    lunationBorderOffset: DpOffset = DpOffset(0.dp, 0.dp),
+    lunationBorderHeight: Dp = digitHeight,   // defaults to same height as tiles
+    lunationBorderScale: Float = digitScale,  // defaults to same scale as tiles
+
+
 ) {
     Box(modifier = modifier) {
         // 1
@@ -80,7 +88,16 @@ fun HudPlaque(
         LayerImage(layers.moonInDrawable, contentScale)
 
         // 3a, 3b, 3c
-        LayerImage(layers.lunationBorder, contentScale)
+        LayerImage(
+            resId = layers.lunationBorder,
+            contentScale = contentScale,
+            modifier = Modifier
+                .offset(x = lunationBorderOffset.x, y = lunationBorderOffset.y)
+                .height(lunationBorderHeight)
+                .scale(lunationBorderScale)
+        )
+
+
         LayerImage(layers.illumBorder, contentScale)
         LayerImage(layers.moonInBorder, contentScale)
 
@@ -97,12 +114,13 @@ fun HudPlaque(
 
         // Lunation counter digits, 3 tiles, drawn above base layers
         LunationDigits(
-            count = lunationCount,
-            modifier = Modifier
-                .offset(x = digitsOffset.x, y = digitsOffset.y)
-                .height(digitHeight),
-            digitSpacing = digitSpacing
-        )
+                count = lunationCount,
+                modifier = Modifier
+                    .offset(x = digitsOffset.x, y = digitsOffset.y)
+                    .height(digitHeight)
+                    .scale(digitScale),
+                digitSpacing = digitSpacing
+            )
 
         @Suppress("UNUSED_VARIABLE")
         val _preserveOffsets = Triple(illumOffset, nameOffset, contentScale)
@@ -157,11 +175,17 @@ private fun digitResId(digit: Int): Int {
 }
 
 @Composable
-private fun LayerImage(@DrawableRes resId: Int, contentScale: ContentScale) {
+private fun LayerImage(
+    @DrawableRes resId: Int,
+    contentScale: ContentScale,
+    modifier: Modifier = Modifier
+) {
     if (resId == 0) return
     Image(
         painter = painterResource(id = resId),
         contentDescription = null,
-        contentScale = contentScale
+        contentScale = contentScale,
+        modifier = modifier
     )
 }
+

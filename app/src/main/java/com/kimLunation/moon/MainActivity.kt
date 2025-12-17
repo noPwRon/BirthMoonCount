@@ -45,17 +45,29 @@ import androidx.compose.ui.unit.sp
 import com.kimLunation.moon.ui.HudPlaque
 import com.kimLunation.moon.ui.MoonDiskEngine
 import kotlin.math.roundToInt
-import com.kimLunation.moon.astronomy.KimConfig
-import com.kimLunation.moon.astronomy.MoonFullMoonsMeeus
+
 import com.kimLunation.moon.ui.HudLayerRes
-import java.time.Instant
+
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import java.time.Instant
+
+import com.kimLunation.moon.astronomy.KimConfig
+import com.kimLunation.moon.astronomy.MoonFullMoonsMeeus
+
 
 
 enum class DebugHudElement {
-    DIGITS, ILLUMINATION, MOON_NAME
+    DIGITS, ILLUMINATION, MOON_NAME, LUNATION_BORDER
 }
+
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -96,6 +108,11 @@ fun MoonScene() {
     var digitsOffset by remember { mutableStateOf(DpOffset(0.dp, 0.dp)) }
     var illumOffset by remember { mutableStateOf(DpOffset(0.dp, 0.dp)) }
     var nameOffset by remember { mutableStateOf(DpOffset(0.dp, 0.dp)) }
+    var lunationBorderOffset by remember { mutableStateOf(DpOffset(256.dp, 66.dp)) }
+    var lunationBorderScale by remember { mutableStateOf(1.0f) }
+    var lunationBorderHeight by remember { mutableStateOf(42.dp) } // set to match digitHeight you use
+
+
 
     // --- Finalized Scene Sizes ---
     val astrolabeSizeDp = 505f
@@ -103,6 +120,10 @@ fun MoonScene() {
     val hudScale = 1.0f
     val hudOffsetY = 35.dp
     val astrolabeAlpha = 1.0f
+    val digitHeight = (69/2).dp
+    val digitSpacing = 0.dp
+
+
 
     // --- Phone & Animation State ---
     val rollDeg by rememberPhoneRollDegrees(context)
@@ -119,7 +140,9 @@ fun MoonScene() {
                     DebugHudElement.DIGITS -> digitsOffset = DpOffset(digitsOffset.x + dx, digitsOffset.y + dy)
                     DebugHudElement.ILLUMINATION -> illumOffset = DpOffset(illumOffset.x + dx, illumOffset.y + dy)
                     DebugHudElement.MOON_NAME -> nameOffset = DpOffset(nameOffset.x + dx, nameOffset.y + dy)
+                    DebugHudElement.LUNATION_BORDER -> lunationBorderOffset = DpOffset(lunationBorderOffset.x + dx, lunationBorderOffset.y + dy)
                 }
+
             }
         }
     } else {
@@ -156,9 +179,14 @@ fun MoonScene() {
                 lunationCount = fullMoonCount,
                 layers = HudLayerRes.fromProjectAssets(),
                 contentScale = ContentScale.Fit,
-                digitHeight = 50.dp, // Default height for digit tiles
-                digitSpacing = 2.dp   // Spacing between digit ti
-            )
+                digitHeight =  digitHeight, // Default height for digit tiles
+                digitSpacing = digitSpacing,   // Spacing between digit ti
+                lunationBorderOffset = lunationBorderOffset,
+                lunationBorderScale = lunationBorderScale,
+                lunationBorderHeight = lunationBorderHeight,
+
+
+                )
         }
 
         // --- DEBUG UI ---
@@ -171,10 +199,11 @@ fun MoonScene() {
                         isDebugMode = true
                     } else {
                         // Cycle through elements to adjust
-                        selectedHudElement = when(selectedHudElement) {
+                        selectedHudElement = when (selectedHudElement) {
                             DebugHudElement.DIGITS -> DebugHudElement.ILLUMINATION
                             DebugHudElement.ILLUMINATION -> DebugHudElement.MOON_NAME
-                            DebugHudElement.MOON_NAME -> DebugHudElement.DIGITS
+                            DebugHudElement.MOON_NAME -> DebugHudElement.LUNATION_BORDER
+                            DebugHudElement.LUNATION_BORDER -> DebugHudElement.DIGITS
                         }
                     }
                 }
@@ -189,6 +218,23 @@ fun MoonScene() {
                 Text(text = "Digits Offset: (${digitsOffset.x.value.roundToInt()}, ${digitsOffset.y.value.roundToInt()})", color = Color.White, fontSize = 12.sp)
                 Text(text = "Illum Offset: (${illumOffset.x.value.roundToInt()}, ${illumOffset.y.value.roundToInt()})", color = Color.White, fontSize = 12.sp)
                 Text(text = "Name Offset: (${nameOffset.x.value.roundToInt()}, ${nameOffset.y.value.roundToInt()})", color = Color.White, fontSize = 12.sp)
+                Text(
+                    text = "DIGITS_RENDER: offset=(${digitsOffset.x.value}, ${digitsOffset.y.value}) dp",
+                    color = Color.Cyan,
+                    fontSize = 12.sp
+                )
+                Text(
+                    text = "DIGITS_RENDER: height=${50} dp spacing=${2} dp scale=${1.0f}",
+                    color = Color.Cyan,
+                    fontSize = 12.sp
+                )
+                Text(
+                    text = "Lunation Border Offset: (${lunationBorderOffset.x.value.roundToInt()}, ${lunationBorderOffset.y.value.roundToInt()})",
+                    color = Color.White,
+                    fontSize = 12.sp
+                )
+
+
             }
         }
     }
