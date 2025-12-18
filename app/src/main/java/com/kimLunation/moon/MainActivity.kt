@@ -7,6 +7,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -71,7 +72,7 @@ fun MoonScene() {
                 // Vertical drag -> Adjust Astrolabe Size
                 val dy = -dragAmount.y // Drag up to increase
                 astrolabeSizeDp = (astrolabeSizeDp + dy).coerceIn(400f, 1000f)
-                
+
                 // Horizontal drag -> Adjust Moon Size
                 val dx = dragAmount.x
                 moonSizeDp = (moonSizeDp + dx).coerceIn(100f, 500f)
@@ -81,11 +82,17 @@ fun MoonScene() {
         Modifier
     }
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .then(gestureModifier)
     ) {
+        val minDim = min(maxWidth, maxHeight)
+
+        // Use debug-controlled pixel sizes when debugging, otherwise responsive sizing.
+        val astrolabeSize = if (isDebugMode) astrolabeSizeDp.dp else minDim * 0.9f
+        val moonSize = if (isDebugMode) moonSizeDp.dp else minDim * 0.44f
+
         // 1. Starfield Background (Bottom)
         Image(
             painter = painterResource(id = R.drawable.starfield_birth_malaga),
@@ -95,10 +102,10 @@ fun MoonScene() {
         )
 
         // 2. Moon Disk (Middle)
-        Box(modifier = Modifier.align(Alignment.Center)) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             MoonDiskEngine(
                 modifier = Modifier
-                    .size(moonSizeDp.dp)
+                    .size(moonSize)
                     .rotate(-rollDeg) // Compensate for phone roll
             )
         }
@@ -109,36 +116,51 @@ fun MoonScene() {
             contentDescription = null,
             modifier = Modifier
                 .align(Alignment.Center)
-                .size(astrolabeSizeDp.dp)
+                .size(astrolabeSize)
                 .alpha(astrolabeAlpha),
             contentScale = ContentScale.Fit
         )
 
-        // 4. Debug Readout (Top Left)
+        // 4. Interactive HUD Plaque (Top End) - toggles debug
+        Image(
+            painter = painterResource(id = R.drawable.hud_plaque),
+            contentDescription = "HUD Plaque",
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
+                .size(minDim * 0.28f)
+                .clickable { isDebugMode = !isDebugMode },
+            contentScale = ContentScale.Fit
+        )
+
+        // 5. Debug Readout (Top Left)
         Column(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(16.dp)
-                .clickable { isDebugMode = !isDebugMode }
         ) {
+            // Small hit target to toggle debug
             Text(
                 text = "DEBUG: ${if (isDebugMode) "ON" else "OFF"}",
                 color = if (isDebugMode) Color.Green else Color.Red,
-                fontSize = 16.sp
+                fontSize = 16.sp,
+                modifier = Modifier.clickable { isDebugMode = !isDebugMode }
             )
             if (isDebugMode) {
                 Text(
-                    text = "Astrolabe Size: ${astrolabeSizeDp.roundToInt()} dp",
+                    text = "Astrolabe Size: ${astrolabeSize.toString()}",
                     color = Color.White,
                     fontSize = 12.sp
                 )
                 Text(
-                    text = "Moon Size: ${moonSizeDp.roundToInt()} dp",
+                    text = "Moon Size: ${moonSize.toString()}",
                     color = Color.White,
                     fontSize = 12.sp
                 )
-                 Text(
-                    text = "Fit Ratio: %.2f".format(moonSizeDp / astrolabeSizeDp),
+                Text(
+                    text = "Fit Ratio: %.2f".format(
+                        if (isDebugMode) (moonSizeDp / astrolabeSizeDp) else (moonSize.value / astrolabeSize.value)
+                    ),
                     color = Color.Yellow,
                     fontSize = 12.sp
                 )
