@@ -13,8 +13,11 @@ import androidx.compose.animation.core.animateDpAsState // Animates a Dp (densit
 import androidx.compose.animation.core.animateFloatAsState // Animates a float (decimal number) value.
 import androidx.compose.foundation.Image // A composable for displaying images.
 import androidx.compose.foundation.clickable // A modifier to make a composable clickable.
+import androidx.compose.foundation.gestures.awaitEachGesture // Runs a block for each complete gesture sequence.
+import androidx.compose.foundation.gestures.awaitFirstDown // Suspends until the first pointer down event in a gesture.
 import androidx.compose.foundation.gestures.detectTapGestures // A gesture detector for taps.
 import androidx.compose.foundation.gestures.detectTransformGestures // A gesture detector for transformations like pinch-to-zoom and drag.
+import androidx.compose.foundation.gestures.waitForUpOrCancellation // Waits for the pointer to go up or the gesture to cancel.
 import androidx.compose.foundation.interaction.MutableInteractionSource // Represents a stream of interactions for a component.
 import androidx.compose.foundation.layout.Arrangement // Used to specify the arrangement of children in a Row or Column.
 import androidx.compose.foundation.layout.Box // A composable that stacks its children on top of each other.
@@ -47,7 +50,6 @@ import androidx.compose.ui.draw.scale // A modifier to scale a composable up or 
 import androidx.compose.ui.graphics.Color // Represents a color.
 import androidx.compose.ui.graphics.TransformOrigin // The point from which a transformation (like scaling) originates.
 import androidx.compose.ui.input.pointer.changedToUpIgnoreConsumed // Utility to detect up events without considering consumption.
-import androidx.compose.ui.input.pointer.awaitPointerEventScope // Scope for awaiting low-level pointer events.
 import androidx.compose.ui.input.pointer.pointerInput // A modifier to handle pointer input (like taps and drags).
 import androidx.compose.ui.layout.ContentScale // Defines how to scale content within a composable.
 import androidx.compose.ui.platform.LocalContext // Provides the current Android Context.
@@ -503,14 +505,11 @@ fun MoonScene() {
             .fillMaxSize() // Fill the whole screen.
             // Lightweight tap listener for the 10-tap unlock; does not consume so children still get events.
             .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        event.changes.forEach { change ->
-                            if (change.changedToUpIgnoreConsumed()) {
-                                registerSecretTap()
-                            }
-                        }
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false)
+                    val up = waitForUpOrCancellation()
+                    if (up != null && up.changedToUpIgnoreConsumed()) {
+                        registerSecretTap()
                     }
                 }
             }

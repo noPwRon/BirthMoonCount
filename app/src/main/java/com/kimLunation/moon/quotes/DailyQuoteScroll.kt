@@ -4,12 +4,12 @@ package com.kimLunation.moon.quotes
 // Imports are used to bring in code from other parts of the project or from external libraries.
 import androidx.compose.animation.AnimatedContent // Animates content changes between states.
 import androidx.compose.animation.AnimatedVisibility // A composable that animates the appearance and disappearance of its content.
+import androidx.compose.animation.animateColorAsState // Animates color changes smoothly.
 import androidx.compose.animation.fadeIn // An animation that fades in content.
 import androidx.compose.animation.fadeOut // An animation that fades out content.
+import androidx.compose.animation.togetherWith // Combines enter/exit transitions.
 import androidx.compose.animation.core.FastOutSlowInEasing // Easing function for smooth animations.
-import androidx.compose.animation.core.animateColorAsState // Animates color changes smoothly.
 import androidx.compose.animation.core.tween // A timing function for animations.
-import androidx.compose.animation.core.togetherWith // Combines enter/exit transitions.
 import androidx.compose.foundation.Image // A composable for displaying images.
 import androidx.compose.foundation.background // A modifier to set the background color of a composable.
 import androidx.compose.foundation.border // A modifier to draw a border around a composable.
@@ -103,13 +103,13 @@ fun DailyQuoteScroll(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     if (showText) {
-                        AnimatedContent(
-                            targetState = quote,
-                            transitionSpec = {
-                                fadeOut(tween(500)) togetherWith fadeIn(tween(900, delayMillis = 150))
-                            },
-                            label = "quoteSwap"
-                        ) { animatedQuote ->
+                            AnimatedContent(
+                                targetState = quote,
+                                transitionSpec = {
+                                fadeIn(tween(900, delayMillis = 150)) togetherWith fadeOut(tween(500))
+                                },
+                                label = "quoteSwap"
+                            ) { animatedQuote ->
                             val baseColor = MaterialTheme.colorScheme.onSurface
                             val emberColor = Color(0xFFC07A3F)
                             var burnPulse by remember(animatedQuote.id) { mutableStateOf(false) }
