@@ -1,28 +1,30 @@
+// This is the package name for the code. It helps organize code in a project.
 package com.kimLunation.moon.astronomy
 
-import java.time.Instant
-import kotlin.math.*
+// Imports are used to bring in code from other parts of the project or from external libraries.
+import java.time.Instant // Represents a specific moment in time, stored in UTC.
+import kotlin.math.* // Imports all standard mathematical functions like sin, cos, atan2, etc.
 
 /**
- * MoonOrientation
+ * This is a Kotlin 'object', which means there is only one instance of this class in the entire application (a Singleton).
+ * 'MoonOrientation' is responsible for calculating the orientation of the Moon's disk as it appears in the sky.
+ * Specifically, it computes the angle of the "terminator" – the line that separates the sunlit part of the Moon from the dark part.
  *
- * This object is responsible for calculating the orientation of the Moon's disk in the sky.
- * Specifically, it computes the angle of the "Terminator" (the line dividing day and night on the Moon).
- *
- * The orientation is crucial for realistic rendering. In a "Sky View" (where Up is North, usually),
- * the lit side of the Moon points towards the Sun. The angle of this direction is called the
- * Position Angle of the Bright Limb (Chi).
+ * This orientation is crucial for rendering a realistic image of the Moon. In what's often called a "Sky View"
+ * (where the top of the view is North), the lit side of the Moon always points towards the Sun.
+ * The angle of this direction is called the Position Angle of the Bright Limb, often represented by the Greek letter Chi (χ).
  */
 object MoonOrientation {
 
     /**
-     * Calculates the rotation angle (in degrees) required to orient a standard Moon texture
-     * (which is typically North-Up) so that its terminator aligns with the Sun's position in the sky.
+     * Calculates the rotation angle (in degrees) needed to orient a standard Moon texture (which is typically North-up)
+     * so that its terminator (the light/dark line) correctly aligns with the Sun's position in the sky.
      *
-     * @param now The time of observation.
-     * @param obsLatDeg Observer's latitude (unused in this geocentric approximation).
-     * @param obsLonDeg Observer's longitude (unused in this geocentric approximation).
-     * @return The rotation angle in degrees. Ideally, this angle is passed to a shader or rotation transform.
+     * @param now The 'Instant' of observation.
+     * @param obsLatDeg The observer's latitude in degrees. (This is currently unused because we are using a geocentric approximation,
+     *                  which assumes the observer is at the center of the Earth. This is accurate enough for this purpose).
+     * @param obsLonDeg The observer's longitude in degrees. (Also unused for the same reason).
+     * @return The rotation angle in degrees. This value can be used to rotate the Moon's image.
      */
     fun terminatorRotationDegSkyMode(
         now: Instant,
@@ -30,51 +32,54 @@ object MoonOrientation {
         @Suppress("UNUSED_PARAMETER") obsLonDeg: Double
     ): Double {
 
-        // 1. Convert time to Julian Day (JD) and Centuries (t).
-        // This is the standard time variable for ephemeris calculations.
+        // Step 1: Convert the time to a Julian Day (JD) and then to Julian Centuries (t).
+        // This is a standard way to represent time in astronomical calculations.
         val jd = julianDay(now)
         val t = (jd - 2451545.0) / 36525.0
 
-        // 2. Compute Mean Orbital Elements of Moon and Sun.
-        // These are polynomial approximations for the position of the bodies.
+        // Step 2: Compute the Mean Orbital Elements of the Moon and Sun.
+        // These are polynomial formulas that give an approximation of the positions of the Moon and Sun.
+        // They are based on astronomical models.
         
-        // Mean elongation of the Moon
+        // Mean elongation of the Moon (difference in longitude between Moon and Sun)
         val d = Math.toRadians(297.8501921 + 445267.1114034 * t - 0.0018819 * t * t)
 
-        // Mean anomaly of the Sun
+        // Mean anomaly of the Sun (position in its elliptical orbit)
         val m = Math.toRadians(357.5291092 + 35999.0502909 * t - 0.0001536 * t * t)
 
-        // Mean anomaly of the Moon
+        // Mean anomaly of the Moon (position in its elliptical orbit)
         val mp = Math.toRadians(134.9633964 + 477198.8675055 * t + 0.0087414 * t * t)
 
-        // Argument of latitude (Moon's distance from ascending node)
+        // Moon's argument of latitude (distance from its ascending node - where it crosses the ecliptic plane going North)
         val f = Math.toRadians(93.2720950 + 483202.0175233 * t - 0.0036539 * t * t)
 
-        // 3. Compute Ecliptic Coordinates.
-        // We first find the Mean Longitude of Sun (L0) and Moon (L_moon).
-        val l0 = Math.toRadians(280.46646 + 36000.76983 * t)
-        val lMoon = Math.toRadians(218.3164477 + 481267.88123421 * t)
+        // Step 3: Compute Ecliptic Coordinates.
+        // Ecliptic coordinates describe a position on the celestial sphere relative to the ecliptic plane (the plane of Earth's orbit).
+        // First, we find the Mean Longitude of the Sun (l0) and the Moon (lMoon).
+        val l0 = Math.toRadians(280.46646 + 36000.76983 * t) // Sun's mean longitude
+        val lMoon = Math.toRadians(218.3164477 + 481267.88123421 * t) // Moon's mean longitude
 
-        // Ecliptic Longitude of Sun (lambdaSun)
-        // Includes equation of center corrections.
+        // Calculate the Ecliptic Longitude of the Sun (lambdaSun).
+        // This includes corrections for the Earth's elliptical orbit (the "equation of center").
         val lambdaSun = l0 + Math.toRadians(1.914602) * sin(m) + Math.toRadians(0.019993) * sin(2 * m)
 
-        // Ecliptic Longitude of Moon (lambdaMoon)
-        // Includes major periodic terms (Evection, Variation, Annual Equation).
+        // Calculate the Ecliptic Longitude of the Moon (lambdaMoon).
+        // This includes major correction terms for gravitational perturbations, like Evection, Variation, and the Annual Equation.
         var lambdaMoon = lMoon + Math.toRadians(6.289) * sin(mp)
         lambdaMoon -= Math.toRadians(1.274) * sin(mp - 2 * d)
         lambdaMoon += Math.toRadians(0.658) * sin(2 * d)
         lambdaMoon += Math.toRadians(0.214) * sin(2 * mp)
         lambdaMoon -= Math.toRadians(0.186) * sin(m)
 
-        // Ecliptic Latitude of Moon (betaMoon)
-        // Moon's orbit is inclined ~5 degrees to the ecliptic.
+        // Calculate the Ecliptic Latitude of the Moon (betaMoon).
+        // The Moon's orbit is tilted about 5.1 degrees relative to the ecliptic plane.
         var betaMoon = Math.toRadians(5.128) * sin(f)
         betaMoon += Math.toRadians(0.280) * sin(mp + f)
         betaMoon += Math.toRadians(0.278) * sin(mp - f)
 
-        // 4. Convert Ecliptic to Equatorial Coordinates (RA, Dec).
-        // The "Obliquity of the Ecliptic" (epsilon) is the tilt of Earth's axis (~23.4 degrees).
+        // Step 4: Convert from Ecliptic Coordinates to Equatorial Coordinates (Right Ascension and Declination).
+        // Equatorial coordinates are fixed relative to the stars.
+        // The "Obliquity of the Ecliptic" (epsilon) is the tilt of Earth's axis, about 23.4 degrees.
         val epsilon = Math.toRadians(23.439 - 0.0000004 * (jd - 2451545.0))
 
         // Sun's Right Ascension (RA) and Declination (Dec)
@@ -91,25 +96,27 @@ object MoonOrientation {
                     cos(betaMoon) * sin(epsilon) * sin(lambdaMoon)
         )
 
-        // 5. Calculate Position Angle of the Bright Limb (Chi).
-        // This is the direction of the Sun relative to the Moon in the sky.
-        // It forms a spherical triangle with the North Pole.
-        // Formula is standard spherical trigonometry.
+        // Step 5: Calculate the Position Angle of the Bright Limb (Chi).
+        // This angle represents the direction of the Sun relative to the Moon as seen from Earth.
+        // The calculation involves solving a spherical triangle formed by the celestial North Pole, the Sun, and the Moon.
+        // The formula is a standard application of spherical trigonometry.
         val numer = cos(sunDec) * sin(sunRA - moonRA)
         val denom = cos(moonDec) * sin(sunDec) -
                 sin(moonDec) * cos(sunDec) * cos(sunRA - moonRA)
         val chi = atan2(numer, denom)
 
-        // 6. Return the result.
-        // Chi is measured counter-clockwise (East) from North.
-        // If we want to rotate a texture on screen (where +rotation is usually Clockwise),
-        // we might return -Chi.
-        // However, this value depends on how the consumer uses it.
-        // Our shader expects Chi for the light vector calculation, or we invert it later.
-        // Here we return -Chi in degrees.
+        // Step 6: Return the result.
+        // The calculated angle 'chi' is measured counter-clockwise from North.
+        // On-screen rotations are often clockwise, so we might need to negate the angle.
+        // This function returns -chi in degrees, which can be directly used for rotation.
         return Math.toDegrees(-chi)
     }
 
+    /**
+     * A private helper function to convert an 'Instant' to a Julian Day.
+     * @param now The 'Instant' to convert.
+     * @return The Julian Day as a Double.
+     */
     private fun julianDay(now: Instant): Double {
         return (now.toEpochMilli() / 86400000.0) + 2440587.5
     }

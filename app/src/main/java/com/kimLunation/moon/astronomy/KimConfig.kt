@@ -1,37 +1,46 @@
+// This is the package name for the code. It helps organize code in a project.
 package com.kimLunation.moon.astronomy
 
-import java.time.Instant
-import java.time.ZoneId
+// Imports are used to bring in code from other parts of the project or from external libraries.
+import java.time.Instant // Represents a specific moment in time, stored in UTC.
+import java.time.ZoneId // Represents a time zone, like "America/Vancouver".
 
 /**
- * KimConfig
+ * This is a Kotlin 'object', which is a special kind of class that only has one instance.
+ * This is known as the Singleton pattern. It's a great place to store configuration values
+ * that are used throughout the application, because they are globally accessible and only created once.
  *
- * This object serves as a centralized configuration holder for the application.
- * It contains constants related to the specific user requirements:
- * - Observer location (Victoria, BC)
- * - Birth instant for calculating the "Full Moons since birth" metric.
- *
- * Using an 'object' in Kotlin creates a Singleton, meaning these values are globally accessible
- * and initialized only once.
+ * This object, 'KimConfig', holds centralized configuration details for the app, such as
+ * the observer's location and a specific birth date for calculations.
  */
 object KimConfig {
-    
-    // Observer Coordinates: Victoria, BC
-    // Latitude and Longitude are required for topocentric astronomical calculations,
-    // although for simple phase and orientation, geocentric (earth-center) approximation is often close enough.
-    // However, knowing the location allows for future expansion (e.g. altitude/azimuth of the moon).
-    const val OBS_LAT = 48.4284
-    const val OBS_LON = -123.3656
 
-    // Display TimeZone
-    // We use "America/Vancouver" to format dates correctly for the user's location.
-    // java.time.ZoneId is part of the modern Java Date/Time API (JSR-310).
+    // --- Observer Coordinates: Victoria, BC ---
+    // These latitude and longitude values are needed for astronomical calculations that depend on the
+    // observer's position on Earth. While simple phase calculations can be done without a specific location,
+    // having this data allows for more advanced features in the future, like calculating the moon's
+    // exact position in the sky (altitude and azimuth).
+
+    // 'const val' is used for values that are known at compile time. This is more efficient.
+    const val OBS_LAT = 48.4284  // Latitude of Victoria, BC, Canada.
+    const val OBS_LON = -123.3656 // Longitude of Victoria, BC, Canada.
+
+    // --- Display TimeZone ---
+    // It's important to show dates and times in the user's local time zone.
+    // We use "America/Vancouver" to ensure that all times are displayed correctly for the user.
+    // 'java.time.ZoneId' is part of the modern and recommended Java Date/Time API.
     val TIMEZONE_DISPLAY: ZoneId = ZoneId.of("America/Vancouver")
 
-    // Birth Instant: 1987-03-06 15:50 Europe/Madrid
-    // We store this as a fixed Instant in UTC to avoid timezone ambiguity during calculations.
-    // Madrid was CET (UTC+1) in March 1987 (Standard Time, not DST yet).
-    // So 15:50 Local = 14:50 UTC.
-    // Instant.parse accepts ISO-8601 format strings.
+    // --- Birth Instant: March 6, 1987, 3:50 PM in Madrid, Spain ---
+    // This is a key piece of data for a personalized feature of the app: calculating the number of full moons
+    // that have occurred since a specific birth date.
+    // We store this as an 'Instant', which is a point in time in UTC (Coordinated Universal Time).
+    // This is the best practice to avoid any confusion or errors related to time zones.
+    //
+    // The original time was 3:50 PM in Madrid. In March 1987, Madrid was on Central European Time (CET),
+    // which is UTC+1. So, 3:50 PM in Madrid was 2:50 PM in UTC.
+    //
+    // 'Instant.parse' is used to create an 'Instant' from a standard ISO-8601 formatted string.
+    // The 'Z' at the end signifies Zulu time, which is another name for UTC.
     val BIRTH_INSTANT: Instant = Instant.parse("1987-03-06T14:50:00Z")
 }

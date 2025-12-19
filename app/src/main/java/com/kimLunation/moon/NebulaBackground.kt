@@ -1,25 +1,32 @@
+// This is the package name for the code. It helps organize code in a project.
 package com.kimLunation.moon
 
-import android.graphics.RuntimeShader
-import android.os.Build
-import androidx.compose.foundation.Canvas
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.State
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.withFrameNanos
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ShaderBrush
-import androidx.compose.ui.graphics.graphicsLayer
-import kotlinx.coroutines.isActive
-import kotlin.math.sin
+// Imports are used to bring in code from other parts of the project or from external libraries.
+import android.graphics.RuntimeShader // A class for creating a shader from AGSL (Android Graphics Shading Language) code.
+import android.os.Build // Provides information about the current device's Android version.
+import androidx.compose.foundation.Canvas // A composable that provides a drawing scope for 2D graphics.
+import androidx.compose.runtime.Composable // An annotation that marks a function as a Jetpack Compose UI component.
+import androidx.compose.runtime.LaunchedEffect // A coroutine scope that is tied to the lifecycle of a composable.
+import androidx.compose.runtime.State // A holder for a value that can be observed by Compose.
+import androidx.compose.runtime.getValue // A delegate to get the value of a State object.
+import androidx.compose.runtime.mutableStateOf // Creates a mutable state object that is observable by Compose.
+import androidx.compose.runtime.remember // Remembers a value across recompositions.
+import androidx.compose.runtime.withFrameNanos // A function to await the next frame and get its time in nanoseconds.
+import androidx.compose.ui.Modifier // An object that can be used to add behavior or decoration to a composable.
+import androidx.compose.ui.graphics.Brush // A brush to paint a shape with.
+import androidx.compose.ui.graphics.Color // Represents a color.
+import androidx.compose.ui.graphics.ShaderBrush // A brush that paints with a shader.
+import androidx.compose.ui.graphics.graphicsLayer // A modifier for applying graphical effects.
+import kotlinx.coroutines.isActive // A property to check if a coroutine is still active.
+import kotlin.math.sin // A mathematical function to calculate the sine of an angle.
 
-private const val NEBULA_SHADER = """
-uniform float2 iResolution;
+/**
+ * This is a string containing AGSL (Android Graphics Shading Language) code.
+ * This code runs on the GPU and is used to create a dynamic, animated nebula effect.
+ * It uses noise functions (hash21, noise, fbm) to generate a procedural texture that looks like a nebula.
+ * The 'iResolution' uniform is the size of the drawing area, and 'iTime' is a time value that is used to animate the nebula.
+ */
+private const val NEBULA_SHADER = """uniform float2 iResolution;
 uniform float iTime;
 
 float hash21(float2 p) {
@@ -78,35 +85,61 @@ half4 main(float2 fragCoord) {
 }
 """
 
+/**
+ * A composable function that displays a nebula background.
+ * It uses a powerful 'RuntimeShader' on newer Android versions (Tiramisu and above)
+ * and falls back to a simpler, less resource-intensive gradient on older versions.
+ */
 @Composable
 fun NebulaBackground(modifier: Modifier = Modifier) {
+    // 'rememberFrameTimeSeconds' provides a continuously updating time value.
     val timeSeconds by rememberFrameTimeSeconds()
+    // Check the Android version to decide which background to use.
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        // On newer devices, use the cool shader-based nebula.
         NebulaShaderLayer(modifier, timeSeconds)
     } else {
+        // On older devices, use a simpler fallback.
         NebulaFallbackLayer(modifier, timeSeconds)
     }
 }
 
+/**
+ * This composable uses the AGSL shader to draw the animated nebula.
+ * It's only called on devices that support 'RuntimeShader'.
+ */
 @Composable
 private fun NebulaShaderLayer(modifier: Modifier, timeSeconds: Float) {
+    // 'remember' is used to create and keep the shader object across recompositions.
     val shader = remember { RuntimeShader(NEBULA_SHADER) }
+    // A 'ShaderBrush' is used to paint with the shader.
     val brush = remember { ShaderBrush(shader) }
+    // The 'Canvas' composable provides a drawing area.
     Canvas(modifier = modifier) {
+        // The shader needs to know the size of the canvas and the current time.
+        // These are passed in as "uniforms".
         shader.setFloatUniform("iResolution", size.width, size.height)
         shader.setFloatUniform("iTime", timeSeconds)
+        // Finally, we draw a rectangle that fills the entire canvas with our shader brush.
         drawRect(brush = brush)
     }
 }
 
+/**
+ * This composable provides a fallback for older devices that don't support 'RuntimeShader'.
+ * It draws a simple, animated radial gradient that gives a hint of a nebula effect.
+ */
 @Composable
 private fun NebulaFallbackLayer(modifier: Modifier, timeSeconds: Float) {
+    // A list of colors for the gradient.
     val colors = remember {
         listOf(Color(0xFF05060C), Color(0xFF02030A))
     }
+    // Animate the alpha (transparency) to create a subtle pulsing effect.
     val alpha = 0.92f + 0.05f * sin(timeSeconds * 0.6f)
     Canvas(modifier = modifier.graphicsLayer { this.alpha = alpha }) {
         val radius = size.minDimension * 0.85f
+        // Draw a rectangle filled with a radial gradient.
         drawRect(
             brush = Brush.radialGradient(
                 colors = colors,
@@ -117,13 +150,20 @@ private fun NebulaFallbackLayer(modifier: Modifier, timeSeconds: Float) {
     }
 }
 
+/**
+ * A composable function that provides a continuously updating 'State' object
+ * containing the time in seconds since the composable was first launched.
+ * This is used to drive the animations in the nebula background.
+ */
 @Composable
 private fun rememberFrameTimeSeconds(): State<Float> {
     val timeState = remember { mutableStateOf(0f) }
+    // 'LaunchedEffect' is used to start a coroutine that updates the time on every frame.
     LaunchedEffect(Unit) {
-        val startTime = withFrameNanos { it }
-        while (isActive) {
-            val frameTime = withFrameNanos { it }
+        val startTime = withFrameNanos { it } // Get the start time.
+        while (isActive) { // Loop as long as the composable is on the screen.
+            val frameTime = withFrameNanos { it } // Get the time of the current frame.
+            // Calculate the elapsed time in seconds and update the state.
             timeState.value = (frameTime - startTime) / 1_000_000_000f
         }
     }
