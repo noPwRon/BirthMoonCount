@@ -4,30 +4,15 @@ package com.kimLunation.moon.quotes
 // Imports are used to bring in code from other parts of the project or from external libraries.
 import android.content.Context // Provides access to application-specific resources and classes.
 import androidx.annotation.VisibleForTesting // An annotation to indicate that a method is public for testing purposes.
-import androidx.datastore.preferences.core.edit // Function to edit data in DataStore.
-import androidx.datastore.preferences.core.longPreferencesKey // Key for storing a Long value (a large number) in DataStore.
-import androidx.datastore.preferences.core.stringPreferencesKey // Key for storing a String value (text) in DataStore.
-import androidx.datastore.preferences.core.stringSetPreferencesKey // Key for storing a Set of Strings in DataStore.
-import androidx.datastore.preferences.preferencesDataStore // Function to create a DataStore instance.
 import com.google.gson.Gson // A library to convert JSON data to Kotlin objects and vice-versa.
 import retrofit2.Retrofit // A library for making network requests (like fetching data from the internet).
 import retrofit2.converter.gson.GsonConverterFactory // A converter for Retrofit to use Gson for JSON processing.
 import retrofit2.http.GET // An annotation for Retrofit to specify an HTTP GET request.
 import retrofit2.http.Url // An annotation for Retrofit to use a dynamic URL.
-import java.time.LocalDate // A class to represent a date (year-month-day).
-import java.time.ZoneOffset // Represents a time-zone offset from Greenwich/UTC.
 import kotlinx.coroutines.Dispatchers // Provides different threads for running tasks (like network or disk operations).
-import kotlinx.coroutines.flow.first // A function to get the first value from a Flow (a stream of data).
 import kotlinx.coroutines.withContext // A function to switch to a different thread for a block of code.
+import java.util.Locale // Locale for stable string normalization.
 import kotlin.random.Random // A utility for generating random numbers.
-
-/**
- * This creates a Preferences DataStore named "daily_quotes" for the application's Context.
- * DataStore is a modern way to store small amounts of data, like user settings or in this case,
- * information about which quotes have been shown. It's an improvement over the older SharedPreferences.
- * The 'by preferencesDataStore' creates an extension property on the Context, so we can access it from anywhere we have a Context.
- */
-val Context.quoteDataStore by preferencesDataStore(name = "daily_quotes")
 
 /**
  * A 'data class' is a special type of class in Kotlin that is primarily used to hold data.
@@ -37,7 +22,7 @@ val Context.quoteDataStore by preferencesDataStore(name = "daily_quotes")
  * @param text The actual text of the quote.
  * @param author The person who said the quote.
  * @param topic The category or topic of the quote.
- * @param weight A number that influences how often this quote is picked. Higher weight means it's more likely to be chosen. Defaults to 1.
+ * @param weight Reserved for future per-quote weighting. Pack-level weights are applied in code. Defaults to 1.
  */
 data class Quote(
     val id: String,
@@ -54,6 +39,8 @@ data class Quote(
  * @param messages A list of quotes. It defaults to an empty list if not provided.
  */
 private data class QuotePack(
+    val packId: String? = null,
+    val packVersion: Int? = null,
     val messages: List<Quote> = emptyList()
 )
 
@@ -81,7 +68,8 @@ private interface QuoteService {
  */
 private data class SourcedQuote(
     val quote: Quote,
-    val isRemote: Boolean
+    val isRemote: Boolean,
+    val packId: String?
 )
 
 /**
@@ -118,11 +106,6 @@ class DailyQuoteRepository(
 
     // Creates an implementation of the 'QuoteService' interface using Retrofit. Also uses 'by lazy'.
     private val quoteService by lazy { retrofit.create(QuoteService::class.java) }
-
-    // Keys for storing data in the Preferences DataStore.
-    private val usedKey = stringSetPreferencesKey("used_ids") // Key for the set of used quote IDs.
-    private val lastIdKey = stringPreferencesKey("last_id")     // Key for the ID of the last shown quote.
-    private val lastDayKey = longPreferencesKey("last_day_epoch") // Key for the last day a quote was shown.
 
     // A counter for the debug function to cycle through quotes.
     private var debugIndex = 0
@@ -162,8 +145,9 @@ class DailyQuoteRepository(
                     context.assets.open(file).bufferedReader().use { reader ->
                         // Use Gson to parse the JSON file into a 'QuotePack'.
                         val pack = gson.fromJson(reader, QuotePack::class.java)
+                        val packId = pack.packId ?: file.substringBeforeLast('.')
                         // Add all the quotes from the pack to our combined list.
-                        addAll(pack.messages.map { SourcedQuote(it, isRemote = false) })
+                        addAll(pack.messages.map { SourcedQuote(it, isRemote = false, packId = packId) })
                     }
                 }
             }
@@ -172,7 +156,12 @@ class DailyQuoteRepository(
                 // Use the 'quoteService' (Retrofit) to fetch the 'QuotePack' from the URL.
                 val pack = quoteService.fetchPack(remoteQuoteUrl)
                 // Add the fetched quotes to the list, marking them as 'isRemote = true'.
-                addAll(pack.messages.map { SourcedQuote(it.copy(weight = maxOf(1, it.weight)), isRemote = true) })
+                val packId = pack.packId ?: "remote_pack"
+                addAll(
+                    pack.messages.map {
+                        SourcedQuote(it.copy(weight = maxOf(1, it.weight)), isRemote = true, packId = packId)
+                    }
+                )
             }
         }
         // Save the combined list to the cache.
@@ -185,59 +174,14 @@ class DailyQuoteRepository(
      * This is the main function to get a quote for the current day. It's a 'suspend' function
      * because it performs I/O operations (loading quotes, reading from DataStore).
      *
-     * @return The 'Quote' for today, or null if no quotes are available.
+     * @return A randomly selected 'Quote', or null if none are available.
      */
     suspend fun getQuoteForToday(): Quote? = withContext(Dispatchers.IO) {
         // Load all available quotes.
         val quotes = loadQuotes()
-        // If there are no quotes at all, there's nothing to do.
         if (quotes.isEmpty()) return@withContext null
-
-        // Get the current date as the number of days since January 1, 1970 (Epoch day).
-        val today = LocalDate.now(ZoneOffset.UTC).toEpochDay()
-        // Get the latest data from our DataStore. '.first()' gets the most recent value.
-        val prefs = context.quoteDataStore.data.first()
-        val lastDay = prefs[lastDayKey]   // The day we last showed a quote.
-        val lastId = prefs[lastIdKey]     // The ID of the quote we last showed.
-        val used = prefs[usedKey] ?: emptySet() // The set of all quote IDs we've ever shown.
-
-        // If we already have a quote for today, return that same quote.
-        if (lastDay == today && lastId != null) {
-            val lastQuote = quotes.find { it.quote.id == lastId }?.quote
-            if (lastQuote != null) return@withContext lastQuote
-        }
-
-        // Filter the list of all quotes to get only the ones we haven't used yet.
-        var unused = quotes.filterNot { it.quote.id in used }
-
-        // Check if the 'unused' list is empty.
-        if (unused.isEmpty()) {
-            // If we have shown every single quote at least once...
-            if (used.size >= quotes.size) {
-                // ...then it's time to show our special stand-in quote.
-                return@withContext allQuotesUsedQuote
-            }
-            // This is a safety net. If 'unused' is empty but 'used' doesn't contain all quotes,
-            // something is inconsistent. We reset the 'used' list to start over.
-            context.quoteDataStore.edit { it.remove(usedKey) }
-            // After resetting, all quotes are considered unused again.
-            unused = quotes
-        }
-
-        // Pick a random quote from the 'unused' list, taking the 'weight' into account.
-        val next = pickWeighted(unused)
-
-        // Save the information about the newly picked quote to DataStore.
-        context.quoteDataStore.edit { updated ->
-            next?.let {
-                updated[lastIdKey] = it.id // Save the new quote's ID.
-                updated[usedKey] = (used + it.id) // Add the new quote's ID to the set of used IDs.
-            }
-            updated[lastDayKey] = today // Save today's date.
-        }
-
-        // Return the selected quote.
-        next
+        // Random every call, weighted by the data.
+        pickWeighted(quotes)
     }
 
     /**
@@ -260,7 +204,7 @@ class DailyQuoteRepository(
     /**
      * This function selects a random quote from a list of candidates.
      * It's not a simple random choice; it's a "weighted" random choice.
-     * Quotes with a higher 'weight' are more likely to be picked.
+     * Quotes from higher-priority packs are more likely to be picked.
      *
      * @param candidates The list of 'SourcedQuote' to choose from.
      * @return The selected 'Quote', or null if the list is empty.
@@ -270,11 +214,8 @@ class DailyQuoteRepository(
         if (candidates.isEmpty()) return null
         // Create a list of pairs, where each pair is a quote and its calculated weight.
         val weights = candidates.map {
-            // The base weight is from the quote data, at least 1.
-            val base = it.quote.weight.coerceAtLeast(1)
-            // Give a bonus to remote quotes to make them appear more often.
-            val bonus = if (it.isRemote) 5 else 1
-            it to (base * bonus)
+            val packWeight = packWeightFor(it.packId)
+            it to packWeight
         }
         // Calculate the total of all weights.
         val total = weights.sumOf { it.second }
@@ -289,5 +230,16 @@ class DailyQuoteRepository(
         }
         // As a fallback (if something goes wrong with the loop), return the last quote.
         return weights.last().first.quote
+    }
+
+    private fun packWeightFor(packId: String?): Int {
+        val key = packId?.lowercase(Locale.US) ?: return 1
+        return when {
+            key.startsWith("custom") -> 6
+            key.startsWith("women") -> 4
+            key.startsWith("russian") -> 3
+            key.startsWith("scientists") || key.startsWith("science") -> 2
+            else -> 1
+        }
     }
 }

@@ -91,9 +91,6 @@ data class HudLayerRes(
          */
         fun fromProjectAssets(): HudLayerRes = HudLayerRes(
             hudPlaque = R.drawable.hud_plaque,
-            illumDrawable = 0, // Placeholder, will be replaced with the actual illumination display.
-            moonInDrawable = 0, // Placeholder, will be replaced with the current moon sign tile.
-
             lunationBorder = R.drawable.lunation_border,
             illumBorder = R.drawable.illum_border,
             moonInBorder = R.drawable.moon_in_border,

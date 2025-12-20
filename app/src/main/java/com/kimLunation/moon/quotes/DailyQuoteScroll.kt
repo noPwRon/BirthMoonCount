@@ -2,53 +2,56 @@
 package com.kimLunation.moon.quotes
 
 // Imports are used to bring in code from other parts of the project or from external libraries.
-import androidx.compose.animation.AnimatedContent // Animates content changes between states.
-import androidx.compose.animation.AnimatedVisibility // A composable that animates the appearance and disappearance of its content.
-import androidx.compose.animation.animateColorAsState // Animates color changes smoothly.
-import androidx.compose.animation.fadeIn // An animation that fades in content.
-import androidx.compose.animation.fadeOut // An animation that fades out content.
-import androidx.compose.animation.togetherWith // Combines enter/exit transitions.
-import androidx.compose.animation.core.FastOutSlowInEasing // Easing function for smooth animations.
-import androidx.compose.animation.core.tween // A timing function for animations.
-import androidx.compose.foundation.Image // A composable for displaying images.
-import androidx.compose.foundation.background // A modifier to set the background color of a composable.
-import androidx.compose.foundation.border // A modifier to draw a border around a composable.
-import androidx.compose.foundation.layout.Box // A composable that stacks its children on top of each other.
-import androidx.compose.foundation.layout.BoxWithConstraints // A Box that provides the size constraints of its parent.
-import androidx.compose.foundation.layout.Column // A composable that arranges its children in a vertical sequence.
-import androidx.compose.foundation.layout.fillMaxWidth // A modifier to make a composable fill its available width.
-import androidx.compose.foundation.layout.heightIn // A modifier to set a minimum and/or maximum height.
-import androidx.compose.foundation.layout.padding // A modifier to add padding around a composable.
-import androidx.compose.foundation.layout.sizeIn // A modifier to set a minimum and/or maximum size.
-import androidx.compose.foundation.layout.width // A modifier to set the width of a composable.
-import androidx.compose.foundation.shape.RoundedCornerShape // A shape with rounded corners.
-import androidx.compose.material3.Icon // A composable for displaying an icon.
-import androidx.compose.material3.IconButton // A composable for a clickable icon button.
-import androidx.compose.material3.MaterialTheme // Provides styling for Material Design components.
-import androidx.compose.material3.Surface // A container that can have a background color and elevation.
-import androidx.compose.material3.Text // A composable for displaying text.
-import androidx.compose.runtime.Composable // An annotation that marks a function as a Jetpack Compose UI component.
-import androidx.compose.runtime.LaunchedEffect // A coroutine scope that is tied to the lifecycle of a composable.
-import androidx.compose.runtime.mutableStateOf // Creates a mutable state object that is observable by Compose.
-import androidx.compose.runtime.remember // Remembers a value across recompositions.
-import androidx.compose.runtime.getValue // A delegate to get the value of a State object.
-import androidx.compose.runtime.setValue // A delegate to set the value of a State object.
-import androidx.compose.ui.Alignment // Used to specify the alignment of a composable within its parent.
-import androidx.compose.ui.Modifier // An object that can be used to add behavior or decoration to a composable.
-import androidx.compose.ui.draw.shadow // A modifier to add a shadow to a composable.
-import androidx.compose.ui.graphics.Color // Represents a color.
-import androidx.compose.ui.layout.ContentScale // Defines how to scale content within a composable.
-import androidx.compose.ui.res.painterResource // A function to load a drawable resource as a Painter.
-import androidx.compose.ui.text.TextStyle // Represents the style of text.
-import androidx.compose.ui.text.font.FontFamily // Represents a font family.
-import androidx.compose.ui.text.font.FontStyle // Represents the style of a font (e.g., italic).
-import androidx.compose.ui.text.font.FontWeight // Represents the weight (boldness) of a font.
-import androidx.compose.ui.text.style.TextAlign // Defines the alignment of text.
-import androidx.compose.ui.text.style.TextOverflow // Defines how to handle text that overflows its container.
-import androidx.compose.ui.unit.Dp // A unit of measurement for density-independent pixels.
-import androidx.compose.ui.unit.dp // A unit of measurement for density-independent pixels.
-import androidx.compose.ui.unit.sp // A unit of measurement for scalable pixels (for text).
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.kimLunation.moon.R // A class that contains all the resource IDs for the project.
+
 
 /**
  * A composable function that displays a daily quote on a parchment scroll image.
@@ -56,6 +59,7 @@ import com.kimLunation.moon.R // A class that contains all the resource IDs for 
  * The caller is responsible for controlling its visibility and handling the close action.
  */
 @Composable
+@OptIn(ExperimentalAnimationApi::class)
 fun DailyQuoteScroll(
     quote: Quote, // The quote to be displayed.
     modifier: Modifier = Modifier, // A modifier for the composable.
@@ -67,19 +71,15 @@ fun DailyQuoteScroll(
     // A 'Box' is used to stack the scroll image and the text on top of each other.
     Box(modifier = modifier, contentAlignment = Alignment.TopCenter) {
         // 'BoxWithConstraints' provides the maximum width and height available, which is useful for responsive layouts.
-        BoxWithConstraints(
-            modifier = Modifier
-                .shadow(8.dp, RoundedCornerShape(12.dp)) // Add a shadow to the scroll.
-        ) {
-            val maxWidth = maxWidth
-            // Clamp the width of the image to a maximum of 360.dp.
-            val imageWidth = maxWidth.coerceAtMost(360.dp)
+        BoxWithConstraints {
+            val scrollWidth = maxWidth.coerceAtMost(360.dp)
+            val shadowInset = 12.dp
+            val imageWidth = (scrollWidth - shadowInset * 2).coerceAtLeast(0.dp)
             // The text box is made smaller than the image to create a nice margin.
             val textBoxWidth = imageWidth * 0.6f
-            val textBoxMinHeight = textBoxWidth * 1.5f
             Box(
                 modifier = Modifier
-                    .sizeIn(maxWidth = imageWidth)
+                    .sizeIn(maxWidth = scrollWidth)
                     .align(Alignment.TopCenter)
             ) {
                 // The parchment scroll image.
@@ -88,7 +88,8 @@ fun DailyQuoteScroll(
                     contentDescription = null, // Decorative image.
                     modifier = Modifier
                         .align(Alignment.Center)
-                        .padding(horizontal = 8.dp),
+                        .width(imageWidth)
+                        .shadow(8.dp, RoundedCornerShape(12.dp)),
                     contentScale = ContentScale.Fit
                 )
                 // A 'Column' is used to arrange the quote text and the author vertically.
@@ -96,22 +97,23 @@ fun DailyQuoteScroll(
                     modifier = Modifier
                         .align(Alignment.Center) // Center the column within the scroll image.
                         .width(textBoxWidth)
-                        .heightIn(min = textBoxMinHeight) // Set a minimum height for the text box.
+                        .fillMaxHeight() // Fill the height to allow vertical centering.
                         .padding(horizontal = 24.dp, vertical = 24.dp)
                         // If 'showDebugBounds' is true, draw a red border around the text box.
                         .then(if (showDebugBounds) Modifier.border(1.dp, Color.Red) else Modifier),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center // This centers the content vertically.
                 ) {
                     if (showText) {
-                            AnimatedContent(
-                                targetState = quote,
-                                transitionSpec = {
+                        AnimatedContent(
+                            targetState = quote,
+                            transitionSpec = {
                                 fadeIn(tween(900, delayMillis = 150)) togetherWith fadeOut(tween(500))
-                                },
-                                label = "quoteSwap"
-                            ) { animatedQuote ->
-                            val baseColor = MaterialTheme.colorScheme.onSurface
-                            val emberColor = Color(0xFFC07A3F)
+                            },
+                            label = "quoteSwap"
+                        ) { animatedQuote ->
+                            val baseColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.94f)
+                            val emberColor = Color(0xFF4B2F1A) // Darker brown for better contrast.
                             var burnPulse by remember(animatedQuote.id) { mutableStateOf(false) }
                             LaunchedEffect(animatedQuote.id) {
                                 burnPulse = false
@@ -123,35 +125,40 @@ fun DailyQuoteScroll(
                                 label = "burnColor"
                             )
 
-                            // Flowing cursive text with a brief ember-to-ink burn-in.
-                            AutoSizeText(
-                                text = animatedQuote.text,
+                            Column(
                                 modifier = Modifier.fillMaxWidth(),
-                                style = MaterialTheme.typography.bodyLarge.copy(
-                                    fontFamily = FontFamily.Cursive,
-                                    fontStyle = FontStyle.Italic,
-                                    fontWeight = FontWeight.Medium,
-                                    lineHeight = 22.sp,
-                                    color = animatedColor
-                                ),
-                                textAlign = TextAlign.Start,
-                                maxLines = 6
-                            )
-                            Text(
-                                text = "~ ${animatedQuote.author}",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontFamily = FontFamily.Cursive,
-                                    fontStyle = FontStyle.Italic,
-                                    fontWeight = FontWeight.Medium,
-                                    color = animatedColor.copy(alpha = 0.85f)
-                                ),
-                                modifier = Modifier
-                                    .padding(top = 12.dp)
-                                    .fillMaxWidth(),
-                                textAlign = TextAlign.End,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                // Flowing cursive text with a brief ember-to-ink burn-in.
+                                AutoSizeText(
+                                    text = animatedQuote.text,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    style = MaterialTheme.typography.bodyLarge.copy(
+                                        fontFamily = FontFamily.Cursive,
+                                        fontStyle = FontStyle.Italic,
+                                        fontWeight = FontWeight.Bold,
+                                        lineHeight = 22.sp,
+                                        color = animatedColor
+                                    ),
+                                    textAlign = TextAlign.Start, // Keep text left-justified.
+                                    maxLines = 6
+                                )
+                                Text(
+                                    text = "~ ${animatedQuote.author}",
+                                    style = MaterialTheme.typography.bodyMedium.copy(
+                                        fontFamily = FontFamily.Cursive,
+                                        fontStyle = FontStyle.Italic,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = animatedColor.copy(alpha = 0.9f)
+                                    ),
+                                    modifier = Modifier
+                                        .padding(top = 14.dp)
+                                        .fillMaxWidth(),
+                                    textAlign = TextAlign.End, // Keep author right-justified.
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
                         }
                     }
                 }
@@ -203,44 +210,62 @@ fun QuoteReopenChip(
 
 /**
  * A composable that automatically adjusts the text size to fit within the available space.
- * It starts with a large font size and shrinks it down until the text no longer overflows.
+ * This optimized version calculates the best font size more efficiently using a binary search.
  */
 @Composable
+@OptIn(ExperimentalTextApi::class)
 private fun AutoSizeText(
     text: String,
     modifier: Modifier = Modifier,
     style: TextStyle,
     textAlign: TextAlign = TextAlign.Start,
     maxLines: Int,
-    minSize: Dp = 12.dp, // The minimum font size.
-    maxSize: Dp = 18.dp  // The maximum font size.
+    minSize: TextUnit = 12.sp,
+    maxSize: TextUnit = 18.sp
 ) {
-    var textStyle by remember { mutableStateOf(style.copy(fontSize = maxSize.value.sp)) }
-    var ready by remember { mutableStateOf(false) } // A flag to prevent unnecessary recompositions.
+    val textMeasurer = rememberTextMeasurer()
 
-    Text(
-        text = text,
-        maxLines = maxLines,
-        overflow = TextOverflow.Ellipsis,
-        textAlign = textAlign,
-        style = textStyle,
-        modifier = modifier,
-        // The 'onTextLayout' callback is called after the text has been laid out.
-        onTextLayout = { result ->
-            // If the text has overflowed its container...
-            if (!ready && result.didOverflowHeight) {
-                // ...shrink the font size by 1sp.
-                val nextSize = (textStyle.fontSize.value - 1).coerceAtLeast(minSize.value)
-                if (nextSize < textStyle.fontSize.value) {
-                    textStyle = textStyle.copy(fontSize = nextSize.sp)
+    BoxWithConstraints(modifier = modifier) {
+        val scaledFontSize = remember(
+            text,
+            style,
+            maxLines,
+            minSize,
+            maxSize,
+            constraints.maxWidth,
+            constraints.maxHeight
+        ) {
+            var high = maxSize
+            var low = minSize
+            var optimalSize = low
+
+            repeat(10) {
+                val midValue = (low.value + high.value) / 2f
+                val mid = midValue.sp
+                val layoutResult = textMeasurer.measure(
+                    text = text,
+                    style = style.copy(fontSize = mid),
+                    maxLines = maxLines,
+                    constraints = constraints.copy(minWidth = 0, minHeight = 0)
+                )
+
+                if (layoutResult.hasVisualOverflow) {
+                    high = mid
                 } else {
-                    // We've reached the minimum size, so we're done.
-                    ready = true
+                    optimalSize = mid
+                    low = mid
                 }
-            } else {
-                // The text fits, so we're done.
-                ready = true
             }
+
+            optimalSize
         }
-    )
+
+        Text(
+            text = text,
+            style = style.copy(fontSize = scaledFontSize),
+            maxLines = maxLines,
+            textAlign = textAlign,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
 }

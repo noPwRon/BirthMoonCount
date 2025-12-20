@@ -2,10 +2,15 @@
 package com.kimLunation.moon
 
 // Imports are used to bring in code from other parts of the project or from external libraries.
+import android.Manifest // Manifest constants for permissions.
+import android.annotation.SuppressLint // Suppresses lint warnings when permissions are guarded.
 import android.content.pm.ApplicationInfo // Provides access to application-specific information, like whether the app is debuggable.
+import android.content.pm.PackageManager // Provides permission constants and checks.
 import android.os.Bundle // Used to save and restore an activity's state.
 import androidx.activity.ComponentActivity // The base class for activities that use Jetpack Compose.
+import androidx.activity.compose.rememberLauncherForActivityResult // Launches permission requests from Compose.
 import androidx.activity.compose.setContent // A function to set the Jetpack Compose content for an activity.
+import androidx.activity.result.contract.ActivityResultContracts // Activity result contracts (permissions).
 import androidx.compose.animation.AnimatedVisibility // A composable that animates the appearance and disappearance of its content.
 import androidx.compose.animation.fadeIn // An animation that fades in content.
 import androidx.compose.animation.fadeOut // An animation that fades out content.
@@ -58,6 +63,7 @@ import androidx.compose.ui.res.painterResource // A function to load a drawable 
 import androidx.compose.ui.graphics.graphicsLayer // A modifier for applying graphical effects.
 import androidx.compose.ui.unit.dp // A unit of measurement for density-independent pixels.
 import androidx.compose.ui.unit.sp // A unit of measurement for scalable pixels (for text).
+import androidx.core.content.ContextCompat // Compatibility helpers for permission checks.
 import com.kimLunation.moon.astronomy.KimConfig // A configuration file for astronomy calculations.
 import com.kimLunation.moon.astronomy.MoonFullMoonsMeeus // A utility for calculating full moons.
 import com.kimLunation.moon.astronomy.MoonPhase // A utility for calculating the moon phase.
@@ -72,6 +78,8 @@ import com.kimLunation.moon.ui.MoonDiskEngine // A composable for the moon disk.
 import com.kimLunation.moon.quotes.DailyQuoteRepository // The repository for daily quotes.
 import com.kimLunation.moon.quotes.DailyQuoteScroll // A composable for the daily quote scroll.
 import com.kimLunation.moon.quotes.Quote // The data class for a quote.
+import com.google.android.gms.location.LocationServices // Fused location provider.
+import com.google.android.gms.location.Priority // Location request priorities.
 import java.time.Instant // Represents a point in time.
 import java.time.LocalDate // Represents a date without time.
 import java.time.LocalDateTime // Represents a date-time without a time-zone.
@@ -191,6 +199,49 @@ fun MoonScene() {
     val context = LocalContext.current
     // 'LocalDensity.current' gives us the screen density, used for converting between pixels and Dp.
     val density = LocalDensity.current
+    val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+    var observerLat by remember { mutableStateOf(KimConfig.OBS_LAT) }
+    var observerLon by remember { mutableStateOf(KimConfig.OBS_LON) }
+    var hasLocationPermission by remember { mutableStateOf(false) }
+
+    @SuppressLint("MissingPermission")
+    fun refreshObserverLocation() {
+        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+            if (location != null) {
+                observerLat = location.latitude
+                observerLon = location.longitude
+            }
+        }
+        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null)
+            .addOnSuccessListener { location ->
+                if (location != null) {
+                    observerLat = location.latitude
+                    observerLon = location.longitude
+                }
+            }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        hasLocationPermission = granted
+        if (granted) {
+            refreshObserverLocation()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        val granted = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+        hasLocationPermission = granted
+        if (granted) {
+            refreshObserverLocation()
+        } else {
+            permissionLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+        }
+    }
     // 'rememberCoroutineScope' gives us a coroutine scope that is tied to the lifecycle of this composable.
     val coroutineScope = rememberCoroutineScope()
     // 'remember' is a key function in Compose. It stores a value that will survive recompositions (UI updates).
@@ -207,6 +258,7 @@ fun MoonScene() {
     var todayQuote by remember { mutableStateOf<Quote?>(null) } // The quote for the current day.
     var quoteVisible by remember { mutableStateOf(false) } // Whether the quote scroll is visible or not.
     var quoteDebugMode by remember { mutableStateOf(false) } // A flag for debugging the quote display.
+    var quoteCycleEnabled by remember { mutableStateOf(false) } // Automatically cycle quotes in debug mode.
     var quoteDay by remember { mutableStateOf<LocalDate?>(null) } // The day associated with the current quote.
     var debugUnlocked by remember { mutableStateOf(false) } // Whether the debug mode is unlocked.
     var secretTapCount by remember { mutableStateOf(0) } // A counter for the secret tap gesture to unlock debug mode.
@@ -248,7 +300,9 @@ fun MoonScene() {
         (moonPhase.fraction * 100.0).roundToInt().coerceIn(0, 100)
     }
     val moonNameLive = remember(now) { MoonStats.moonName(now) }
-    val moonSign = remember(now) { MoonZodiac.sign(now) }
+    val moonSign = remember(now, observerLat, observerLon, hasLocationPermission) {
+        MoonZodiac.sign(now, observerLat, observerLon, useTopocentric = hasLocationPermission)
+    }
 
 
     // --- Debug State ---
@@ -277,7 +331,7 @@ fun MoonScene() {
     val defaultTransforms = remember {
         mapOf(
             DebugHudElement.PLAQUE to HudLayerTransform(offset = DpOffset(0.dp, 36.dp)),
-            DebugHudElement.ILLUMINATION to HudLayerTransform(offset = DpOffset(-90.dp, 115.dp), scale = 0.7f),
+            DebugHudElement.ILLUMINATION to HudLayerTransform(offset = DpOffset(-89.dp, 113.dp), scale = 0.7f),
             DebugHudElement.MOON_PHASE to HudLayerTransform(offset = DpOffset(0.dp, 113.dp), scale = 0.65f),
             DebugHudElement.MOON_IN to HudLayerTransform(offset = DpOffset(-40.dp, 40.dp), scale = 0.2f),
             DebugHudElement.ILLUM_BORDER to HudLayerTransform(offset = DpOffset(80.dp, 90.dp),scale = 0.55f),
@@ -453,6 +507,15 @@ fun MoonScene() {
         }
     }
 
+    // Automatically cycle through quotes when enabled in debug UI.
+    LaunchedEffect(quoteCycleEnabled, quoteDebugMode) {
+        if (!quoteCycleEnabled || !quoteDebugMode) return@LaunchedEffect
+        while (isActive && quoteCycleEnabled && quoteDebugMode) {
+            showNextDebugQuote()
+            delay(1500)
+        }
+    }
+
     // A function to register a tap for the secret debug unlock gesture.
     fun registerSecretTap() {
         val nowMs = System.currentTimeMillis()
@@ -469,6 +532,7 @@ fun MoonScene() {
             // When locking, reset any debug-only flags.
             if (!debugUnlocked) {
                 quoteDebugMode = false
+                quoteCycleEnabled = false
                 isDebugMode = false
             }
             secretTapCount = 0
@@ -591,6 +655,16 @@ fun MoonScene() {
                 ) {
                     Text(text = "Next")
                 }
+                Checkbox(
+                    checked = quoteCycleEnabled,
+                    onCheckedChange = { quoteCycleEnabled = it },
+                    enabled = quoteDebugMode
+                )
+                Text(
+                    text = "Cycle",
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontSize = 12.sp
+                )
             }
         }
 

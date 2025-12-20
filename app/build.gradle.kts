@@ -38,7 +38,8 @@ android {
         compose = true
     }
 
-    sourceSets["main"].assets.srcDir("../Data")
+    // Include default assets folder and an optional shared Data folder.
+    sourceSets["main"].assets.srcDirs("src/main/assets", "../Data")
 }
 
 dependencies {
@@ -66,4 +67,6 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     // OkHttp for HTTP client
     implementation("com.squareup.okhttp3:logging-interceptor:4.9.0")
+    // Fused location provider (coarse location).
+    implementation("com.google.android.gms:play-services-location:21.2.0")
 }
