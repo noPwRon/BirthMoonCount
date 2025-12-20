@@ -1,0 +1,66 @@
+{
+  "packId": "spanish_culture_v1",
+  "packVersion": 1,
+  "messages": [
+    {
+      "id": "sp_0001",
+      "text": "El que lee mucho y anda mucho, ve mucho y sabe mucho.",
+      "author": "Miguel de Cervantes Saavedra",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0002",
+      "text": "Nada te turbe, nada te espante; todo se pasa. Dios no se muda.",
+      "author": "Teresa de Ávila",
+      "topic": "uplifting"
+    },
+    {
+      "id": "sp_0003",
+      "text": "Poderoso caballero es don Dinero.",
+      "author": "Francisco de Quevedo",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0004",
+      "text": "El amor nace del deseo súbito de hacer eterno lo pasajero.",
+      "author": "Ramón Gómez de la Serna",
+      "topic": "love"
+    },
+    {
+      "id": "sp_0005",
+      "text": "Quien lo probó lo sabe.",
+      "author": "Lope de Vega",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0006",
+      "text": "No hay cosa más cara que la que no se compra.",
+      "author": "Baltasar Gracián",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0007",
+      "text": "Vivo sin vivir en mí, y tan alta vida espero, que muero porque no muero.",
+      "author": "Teresa de Ávila",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0008",
+      "text": "La brevedad es lisonjera, y más negociante.",
+      "author": "Baltasar Gracián",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0009",
+      "text": "A mis soledades voy, de mis soledades vengo.",
+      "author": "Lope de Vega",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0010",
+      "text": "Bien predica quien bien vive.",
+      "author": "Miguel de Cervantes Saavedra",
+      "topic": "uplifting"
+    }
+  ]
+}

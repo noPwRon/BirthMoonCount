@@ -4,12 +4,20 @@ package com.kimLunation.moon.quotes
 // Imports are used to bring in code from other parts of the project or from external libraries.
 import android.content.Context // Provides access to application-specific resources and classes.
 import androidx.annotation.VisibleForTesting // An annotation to indicate that a method is public for testing purposes.
+import androidx.datastore.preferences.core.edit // Function to edit data in DataStore.
+import androidx.datastore.preferences.core.longPreferencesKey // Key for storing a Long value in DataStore.
+import androidx.datastore.preferences.core.stringSetPreferencesKey // Key for storing a Set of Strings in DataStore.
+import androidx.datastore.preferences.preferencesDataStore // Function to create a DataStore instance.
 import com.google.gson.Gson // A library to convert JSON data to Kotlin objects and vice-versa.
+import com.google.gson.annotations.SerializedName // Maps JSON fields to Kotlin properties.
 import retrofit2.Retrofit // A library for making network requests (like fetching data from the internet).
 import retrofit2.converter.gson.GsonConverterFactory // A converter for Retrofit to use Gson for JSON processing.
 import retrofit2.http.GET // An annotation for Retrofit to specify an HTTP GET request.
+import retrofit2.http.Path // URL path parameter annotation for Retrofit.
+import retrofit2.http.Query // URL query parameter annotation for Retrofit.
 import retrofit2.http.Url // An annotation for Retrofit to use a dynamic URL.
 import kotlinx.coroutines.Dispatchers // Provides different threads for running tasks (like network or disk operations).
+import kotlinx.coroutines.flow.first // Reads the current DataStore value once.
 import kotlinx.coroutines.withContext // A function to switch to a different thread for a block of code.
 import java.util.Locale // Locale for stable string normalization.
 import kotlin.random.Random // A utility for generating random numbers.
@@ -32,6 +40,8 @@ data class Quote(
     val weight: Int = 1
 )
 
+private val Context.quoteCacheDataStore by preferencesDataStore(name = "quote_cache")
+
 /**
  * This data class represents a "pack" of quotes, which is how quotes are structured in the JSON files.
  * It contains a list of 'Quote' objects.
@@ -42,6 +52,12 @@ private data class QuotePack(
     val packId: String? = null,
     val packVersion: Int? = null,
     val messages: List<Quote> = emptyList()
+)
+
+private data class GitHubContentItem(
+    val name: String? = null,
+    val type: String? = null,
+    @SerializedName("download_url") val downloadUrl: String? = null
 )
 
 /**
@@ -57,6 +73,16 @@ private interface QuoteService {
      */
     @GET
     suspend fun fetchPack(@Url url: String): QuotePack
+}
+
+private interface GitHubContentService {
+    @GET("repos/{owner}/{repo}/contents/{path}")
+    suspend fun listContents(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Path("path") path: String,
+        @Query("ref") ref: String
+    ): List<GitHubContentItem>
 }
 
 /**
@@ -85,12 +111,26 @@ class DailyQuoteRepository(
     // An instance of Gson, used for converting JSON to Kotlin objects.
     private val gson = Gson()
 
-    // The public URL to fetch additional quotes from.
-    private val remoteQuoteUrl = "https://raw.githubusercontent.com/noPwRon/BirthMoonCount/master/app/src/main/assets/science.json"
+    // Remote pack list for live updates without rebuilding the app.
+    private val remotePackBaseUrl = "https://raw.githubusercontent.com/noPwRon/BirthMoonCount/master/app/src/main/assets/"
+    private val remotePackFallbackFiles = listOf(
+        "custom_quotes.json",
+        "women_only.json",
+        "russian_culture.json",
+        "science.json"
+    )
+    private val remoteRepoOwner = "noPwRon"
+    private val remoteRepoName = "BirthMoonCount"
+    private val remoteRepoPath = "app/src/main/assets"
+    private val remoteRepoRef = "master"
+    private val remoteFetchIntervalMs = 7L * 24L * 60L * 60L * 1000L
+    private val lastFetchKey = longPreferencesKey("last_remote_fetch_ms")
+    private val usedKey = stringSetPreferencesKey("used_quote_ids")
 
     // A cache for the loaded quotes. This avoids reloading them from files and network every time.
     // It's nullable ('?') because it will be null until the quotes are loaded for the first time.
     private var cachedQuotes: List<SourcedQuote>? = null
+    private var lastFetchMs: Long? = null
 
     /**
      * This sets up Retrofit. The 'by lazy' means that the code inside the block will only run
@@ -106,6 +146,15 @@ class DailyQuoteRepository(
 
     // Creates an implementation of the 'QuoteService' interface using Retrofit. Also uses 'by lazy'.
     private val quoteService by lazy { retrofit.create(QuoteService::class.java) }
+
+    private val githubRetrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl("https://api.github.com/") // Base URL for GitHub API.
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+    }
+
+    private val githubContentService by lazy { githubRetrofit.create(GitHubContentService::class.java) }
 
     // A counter for the debug function to cycle through quotes.
     private var debugIndex = 0
@@ -126,46 +175,72 @@ class DailyQuoteRepository(
      * @return A list of 'SourcedQuote' objects.
      */
     private suspend fun loadQuotes(): List<SourcedQuote> = withContext(Dispatchers.IO) {
-        // If quotes are already cached, return the cached list immediately.
-        cachedQuotes?.let { return@withContext it }
+        val nowMs = System.currentTimeMillis()
+        val storedFetch = lastFetchMs ?: context.quoteCacheDataStore.data.first()[lastFetchKey] ?: 0L
+        val shouldFetchRemote = nowMs - storedFetch >= remoteFetchIntervalMs
+        if (!shouldFetchRemote) {
+            cachedQuotes?.let { return@withContext it }
+        }
 
         // 'buildList' creates a new list.
-        val combined = buildList {
-            // Automatically find and load all .json files from the assets folder.
-            val jsonAssetFiles = try {
-                context.assets.list("")?.filter { it.endsWith(".json") } ?: emptyList()
-            } catch (e: Exception) {
-                emptyList()
-            }
+        val combinedById = linkedMapOf<String, SourcedQuote>()
 
-            jsonAssetFiles.forEach { file ->
-                // 'runCatching' is a safe way to run code that might throw an error (e.g., file not found).
-                runCatching {
-                    // Open the asset file and read it.
-                    context.assets.open(file).bufferedReader().use { reader ->
-                        // Use Gson to parse the JSON file into a 'QuotePack'.
-                        val pack = gson.fromJson(reader, QuotePack::class.java)
-                        val packId = pack.packId ?: file.substringBeforeLast('.')
-                        // Add all the quotes from the pack to our combined list.
-                        addAll(pack.messages.map { SourcedQuote(it, isRemote = false, packId = packId) })
-                    }
+        fun addQuotes(quotes: List<SourcedQuote>, preferRemote: Boolean) {
+            for (quote in quotes) {
+                val existing = combinedById[quote.quote.id]
+                if (existing == null || (preferRemote && !existing.isRemote)) {
+                    combinedById[quote.quote.id] = quote
                 }
             }
-            // Fetch quotes from the remote URL.
+        }
+
+        // Automatically find and load all .json files from the assets folder.
+        val jsonAssetFiles = try {
+            context.assets.list("")?.filter { it.endsWith(".json") } ?: emptyList()
+        } catch (e: Exception) {
+            emptyList()
+        }
+
+        jsonAssetFiles.forEach { file ->
+            // 'runCatching' is a safe way to run code that might throw an error (e.g., file not found).
             runCatching {
-                // Use the 'quoteService' (Retrofit) to fetch the 'QuotePack' from the URL.
-                val pack = quoteService.fetchPack(remoteQuoteUrl)
-                // Add the fetched quotes to the list, marking them as 'isRemote = true'.
-                val packId = pack.packId ?: "remote_pack"
-                addAll(
-                    pack.messages.map {
+                // Open the asset file and read it.
+                context.assets.open(file).bufferedReader().use { reader ->
+                    // Use Gson to parse the JSON file into a 'QuotePack'.
+                    val pack = gson.fromJson(reader, QuotePack::class.java)
+                    val packId = pack.packId ?: file.substringBeforeLast('.')
+                    // Add all the quotes from the pack to our combined list.
+                    val quotes = pack.messages.map { SourcedQuote(it, isRemote = false, packId = packId) }
+                    addQuotes(quotes, preferRemote = false)
+                }
+            }
+        }
+        // Fetch quotes from the remote repo for live updates (weekly).
+        var remoteSuccess = false
+        if (shouldFetchRemote) {
+            val remoteSources = fetchRemotePackSources()
+            remoteSources.forEach { source ->
+                val url = source.url
+                runCatching {
+                    val pack = quoteService.fetchPack(url)
+                    val packId = pack.packId ?: source.fileName.substringBeforeLast('.')
+                    val quotes = pack.messages.map {
                         SourcedQuote(it.copy(weight = maxOf(1, it.weight)), isRemote = true, packId = packId)
                     }
-                )
+                    addQuotes(quotes, preferRemote = true)
+                    remoteSuccess = true
+                }
             }
         }
         // Save the combined list to the cache.
+        val combined = combinedById.values.toList()
         cachedQuotes = combined
+        if (remoteSuccess) {
+            context.quoteCacheDataStore.edit { prefs ->
+                prefs[lastFetchKey] = nowMs
+            }
+            lastFetchMs = nowMs
+        }
         // Return the combined list.
         combined
     }
@@ -180,8 +255,18 @@ class DailyQuoteRepository(
         // Load all available quotes.
         val quotes = loadQuotes()
         if (quotes.isEmpty()) return@withContext null
-        // Random every call, weighted by the data.
-        pickWeighted(quotes)
+        // Avoid repeats by tracking used IDs locally.
+        val used = context.quoteCacheDataStore.data.first()[usedKey] ?: emptySet()
+        val unused = quotes.filterNot { it.quote.id in used }
+        if (unused.isEmpty()) return@withContext allQuotesUsedQuote
+
+        val next = pickWeighted(unused)
+        if (next != null) {
+            context.quoteCacheDataStore.edit { prefs ->
+                prefs[usedKey] = used + next.id
+            }
+        }
+        next
     }
 
     /**
@@ -238,8 +323,27 @@ class DailyQuoteRepository(
             key.startsWith("custom") -> 6
             key.startsWith("women") -> 4
             key.startsWith("russian") -> 3
+            key.startsWith("spanish") -> 3
             key.startsWith("scientists") || key.startsWith("science") -> 2
             else -> 1
+        }
+    }
+
+    private data class RemotePackSource(val fileName: String, val url: String)
+
+    private suspend fun fetchRemotePackSources(): List<RemotePackSource> {
+        val listed = runCatching {
+            githubContentService.listContents(remoteRepoOwner, remoteRepoName, remoteRepoPath, remoteRepoRef)
+                .filter { it.type == "file" && it.name?.endsWith(".json") == true && !it.downloadUrl.isNullOrBlank() }
+                .map { RemotePackSource(it.name!!, it.downloadUrl!!) }
+        }.getOrElse { emptyList() }
+
+        if (listed.isNotEmpty()) {
+            return listed
+        }
+
+        return remotePackFallbackFiles.map { file ->
+            RemotePackSource(file, remotePackBaseUrl + file)
         }
     }
 }
