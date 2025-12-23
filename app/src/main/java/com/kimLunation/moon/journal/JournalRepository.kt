@@ -25,7 +25,11 @@ data class JournalEntry(
     val lunationDay: Double?,
     val phaseLabel: String,
     val illuminationPercent: Int,
-    val moonSign: String?
+    val moonSign: String?,
+    val isPeriod: Boolean = false,
+    val isGreenEvent: Boolean = false,
+    val isYellowEvent: Boolean = false,
+    val isBlueEvent: Boolean = false
 )
 
 private val Context.journalDataStore by preferencesDataStore(name = "journal_entries")

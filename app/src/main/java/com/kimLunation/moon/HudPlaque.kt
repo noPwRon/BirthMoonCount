@@ -73,6 +73,11 @@ data class HudLayerRes(
     @DrawableRes val illumBorder: Int = 0,
     @DrawableRes val moonInBorder: Int = 0,
 
+    // Label layers for different sections of the HUD.
+    @DrawableRes val lunationLabel: Int = 0,
+    @DrawableRes val illumLabel: Int = 0,
+    @DrawableRes val moonInLabel: Int = 0,
+
     // Layers for the compass element.
     @DrawableRes val compassUnderlay: Int = 0,
     @DrawableRes val compassCircle: Int = 0,
@@ -94,6 +99,9 @@ data class HudLayerRes(
             lunationBorder = R.drawable.lunation_border,
             illumBorder = R.drawable.illum_border,
             moonInBorder = R.drawable.moon_in_border,
+            lunationLabel = R.drawable.lunation_label,
+            illumLabel = R.drawable.illum_label,
+            moonInLabel = R.drawable.moon_in_label,
 
             compassCircle = R.drawable.compass_circle,
             compassRidge = R.drawable.compass_ridge,
@@ -124,6 +132,9 @@ data class HudPlaqueTransforms(
     val lunationBorder: HudLayerTransform = HudLayerTransform(),
     val illumBorder: HudLayerTransform = HudLayerTransform(),
     val moonInBorder: HudLayerTransform = HudLayerTransform(),
+    val lunationLabel: HudLayerTransform = HudLayerTransform(),
+    val illumLabel: HudLayerTransform = HudLayerTransform(),
+    val moonInLabel: HudLayerTransform = HudLayerTransform(),
     val compassUnderlay: HudLayerTransform = HudLayerTransform(),
     val compassCircle: HudLayerTransform = HudLayerTransform(),
     val compassRidge: HudLayerTransform = HudLayerTransform(),
@@ -189,6 +200,23 @@ fun HudPlaque(
             resId = layers.moonInBorder,
             contentScale = contentScale,
             modifier = Modifier.applyTransform(transforms.moonInBorder)
+        )
+
+        // The label layers sit above their respective areas.
+        LayerImage(
+            resId = layers.lunationLabel,
+            contentScale = contentScale,
+            modifier = Modifier.applyTransform(transforms.lunationLabel)
+        )
+        LayerImage(
+            resId = layers.illumLabel,
+            contentScale = contentScale,
+            modifier = Modifier.applyTransform(transforms.illumLabel)
+        )
+        LayerImage(
+            resId = layers.moonInLabel,
+            contentScale = contentScale,
+            modifier = Modifier.applyTransform(transforms.moonInLabel)
         )
 
         // The compass layers.

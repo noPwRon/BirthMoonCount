@@ -1,84 +1,83 @@
-// This is the package name for the code. It helps organize code in a project.
+// Main scene composition and UI state for the app.
 package com.kimLunation.moon
 
-// Imports are used to bring in code from other parts of the project or from external libraries.
-import android.Manifest // Manifest constants for permissions.
-import android.annotation.SuppressLint // Suppresses lint warnings when permissions are guarded.
-import android.content.pm.ApplicationInfo // Provides access to application-specific information, like whether the app is debuggable.
-import android.content.pm.PackageManager // Provides permission constants and checks.
-import android.os.Bundle // Used to save and restore an activity's state.
-import androidx.activity.ComponentActivity // The base class for activities that use Jetpack Compose.
-import androidx.activity.compose.rememberLauncherForActivityResult // Launches permission requests from Compose.
-import androidx.activity.compose.setContent // A function to set the Jetpack Compose content for an activity.
-import androidx.activity.result.contract.ActivityResultContracts // Activity result contracts (permissions).
-import androidx.compose.animation.core.animateDpAsState // Animates a Dp (density-independent pixel) value.
-import androidx.compose.animation.core.animateFloatAsState // Animates a float (decimal number) value.
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image // A composable for displaying images.
-import androidx.compose.foundation.clickable // A modifier to make a composable clickable.
-import androidx.compose.foundation.gestures.detectTapGestures // A gesture detector for taps.
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource // Represents a stream of interactions for a component.
-import androidx.compose.foundation.layout.Arrangement // Used to specify the arrangement of children in a Row or Column.
-import androidx.compose.foundation.layout.Box // A composable that stacks its children on top of each other.
-import androidx.compose.foundation.layout.BoxWithConstraints // A Box that provides the size constraints of its parent.
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row // A composable that arranges its children in a horizontal sequence.
-import androidx.compose.foundation.layout.fillMaxSize // A modifier to make a composable fill its entire available space.
-import androidx.compose.foundation.layout.fillMaxWidth // A modifier to make a composable fill its available width.
-import androidx.compose.foundation.layout.height // A modifier to set the height of a composable.
-import androidx.compose.foundation.layout.offset // A modifier to offset a composable from its original position.
-import androidx.compose.foundation.layout.padding // A modifier to add padding around a composable.
-import androidx.compose.foundation.layout.size // A modifier to set the size of a composable.
-import androidx.compose.foundation.layout.width // A modifier to set the width of a composable.
-import androidx.compose.material3.Button // A composable for a Material Design button.
-import androidx.compose.material3.Checkbox // A composable for a Material Design checkbox.
-import androidx.compose.material3.MaterialTheme // Provides styling for Material Design components.
-import androidx.compose.material3.Surface // A container that can have a background color and elevation.
-import androidx.compose.material3.Text // A composable for displaying text.
-import androidx.compose.runtime.Composable // An annotation that marks a function as a Jetpack Compose UI component.
-import androidx.compose.runtime.LaunchedEffect // A coroutine scope that is tied to the lifecycle of a composable.
-import androidx.compose.runtime.getValue // A delegate to get the value of a State object.
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf // Creates a mutable state object that is observable by Compose.
-import androidx.compose.runtime.remember // Remembers a value across recompositions.
-import androidx.compose.runtime.rememberCoroutineScope // Remembers a coroutine scope across recompositions.
-import androidx.compose.runtime.setValue // A delegate to set the value of a State object.
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
-import androidx.compose.ui.Alignment // Used to specify the alignment of a composable within its parent.
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.Modifier // An object that can be used to add behavior or decoration to a composable.
-import androidx.compose.ui.draw.alpha // A modifier to change the transparency of a composable.
-import androidx.compose.ui.draw.scale // A modifier to scale a composable up or down.
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color // Represents a color.
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
-import androidx.compose.ui.graphics.TransformOrigin // The point from which a transformation (like scaling) originates.
-import androidx.compose.ui.graphics.graphicsLayer // A modifier for applying graphical effects.
-import androidx.compose.ui.input.pointer.pointerInput // A modifier to handle pointer input (like taps and drags).
-import androidx.compose.ui.layout.ContentScale // Defines how to scale content within a composable.
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalContext // Provides the current Android Context.
-import androidx.compose.ui.res.painterResource // A function to load a drawable resource as a Painter.
-import androidx.compose.ui.unit.dp // A unit of measurement for density-independent pixels.
-import androidx.compose.ui.unit.sp // A unit of measurement for scalable pixels (for text).
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.zIndex
-import androidx.core.content.ContextCompat // Compatibility helpers for permission checks.
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.gson.GsonBuilder
-import com.google.android.gms.location.LocationServices // Fused location provider.
-import com.google.android.gms.location.Priority // Location request priorities.
-import com.kimLunation.moon.astronomy.KimConfig // A configuration file for astronomy calculations.
-import com.kimLunation.moon.astronomy.MoonFullMoonsMeeus // A utility for calculating full moons.
-import com.kimLunation.moon.astronomy.MoonPhase // A utility for calculating the moon phase.
-import com.kimLunation.moon.astronomy.MoonStats // A utility for getting moon statistics.
-import com.kimLunation.moon.astronomy.MoonZodiac // A utility for calculating the moon's zodiac sign.
-import com.kimLunation.moon.astronomy.ZodiacSign // An enum representing the zodiac signs.
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.kimLunation.moon.astronomy.KimConfig
+import com.kimLunation.moon.astronomy.MoonFullMoonsMeeus
+import com.kimLunation.moon.astronomy.MoonPhase
+import com.kimLunation.moon.astronomy.MoonStats
+import com.kimLunation.moon.astronomy.MoonZodiac
+import com.kimLunation.moon.astronomy.ZodiacSign
 import com.kimLunation.moon.journal.JournalEntry
 import com.kimLunation.moon.journal.JournalGlyphButton
 import com.kimLunation.moon.journal.JournalRepository
@@ -87,32 +86,30 @@ import com.kimLunation.moon.journal.JournalReviewViewModel
 import com.kimLunation.moon.journal.JournalReviewViewModelFactory
 import com.kimLunation.moon.journal.JournalScreen
 import com.kimLunation.moon.journal.JournalSkyStamp
-import com.kimLunation.moon.quotes.DailyQuoteRepository // The repository for daily quotes.
-import com.kimLunation.moon.quotes.DailyQuoteScroll // A composable for the daily quote scroll.
-import com.kimLunation.moon.quotes.Quote // The data class for a quote.
-import com.kimLunation.moon.ui.HudLayerRes // A data class for the HUD layer resources.
-import com.kimLunation.moon.ui.HudLayerTransform // A data class for HUD layer transformations.
-import com.kimLunation.moon.ui.HudPlaque // A composable for the main HUD plaque.
-import com.kimLunation.moon.ui.HudPlaqueTransforms // A data class for all HUD plaque transformations.
-import com.kimLunation.moon.ui.MoonDiskEngine // A composable for the moon disk.
-import java.time.Instant // Represents a point in time.
-import java.time.LocalDate // Represents a date without time.
-import java.time.LocalDateTime // Represents a date-time without a time-zone.
+import com.kimLunation.moon.quotes.DailyQuoteRepository
+import com.kimLunation.moon.quotes.DailyQuoteScroll
+import com.kimLunation.moon.quotes.Quote
+import com.kimLunation.moon.ui.HudLayerRes
+import com.kimLunation.moon.ui.HudLayerTransform
+import com.kimLunation.moon.ui.HudPlaque
+import com.kimLunation.moon.ui.HudPlaqueTransforms
+import com.kimLunation.moon.ui.MoonDiskEngine
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.ZoneId
-import java.util.Locale // Represents a specific geographical, political, or cultural region.
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay // A function to pause a coroutine for a specified time.
-import kotlinx.coroutines.isActive // A property to check if a coroutine is still active.
-import kotlinx.coroutines.launch // A function to start a new coroutine.
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlin.math.PI
-import kotlin.math.roundToInt // A function to round a number to the nearest integer.
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.random.Random
 
 /**
- * An 'enum' (enumeration) is a special type that represents a fixed set of constants.
- * This enum, 'DebugHudElement', defines all the individual elements of the Heads-Up Display (HUD)
- * that can be manipulated in debug mode.
+ * Keys for HUD layer transforms used by the debug layout controls.
  */
 enum class DebugHudElement {
     PLAQUE,
@@ -122,6 +119,9 @@ enum class DebugHudElement {
     LUNATION_BORDER,
     ILLUMINATION_BORDER,
     MOON_IN_BORDER,
+    LUNATION_LABEL,
+    ILLUMINATION_LABEL,
+    MOON_IN_LABEL,
     COMPASS_CIRCLE,
     COMPASS_RIDGE,
     COMPASS_ARROW,
@@ -130,8 +130,7 @@ enum class DebugHudElement {
 }
 
 /**
- * This function returns a human-readable label for a given 'ZodiacSign'.
- * It takes the enum name, converts it to lowercase, and then capitalizes the first letter.
+ * Formats zodiac enum names into UI-facing labels.
  */
 private fun zodiacLabel(sign: ZodiacSign): String {
     val lower = sign.name.lowercase(Locale.US)
@@ -231,8 +230,7 @@ private fun NebulaBreathingOverlay(
 }
 
 /**
- * This function returns the drawable resource ID for the tile of a given 'ZodiacSign'.
- * This is used to display the correct image for each zodiac sign in the HUD.
+ * Maps zodiac signs to their HUD tile artwork.
  */
 private fun zodiacTileResId(sign: ZodiacSign): Int {
     return when (sign) {
@@ -252,22 +250,17 @@ private fun zodiacTileResId(sign: ZodiacSign): Int {
 }
 
 /**
- * This is the main entry point of the application. It's an 'Activity', which is a single, focused thing that the user can do.
+ * Activity host that installs the Compose scene.
  */
 class MainActivity : ComponentActivity() {
     /**
-     * This method is called when the activity is first created. It's where you do all of your normal static set up:
-     * create views, bind data to lists, etc.
+     * Installs the Compose content and theme wrapper.
      */
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState) // Always call the superclass's method first.
-        // 'setContent' is where you define your UI using Jetpack Compose.
+        super.onCreate(savedInstanceState)
         setContent {
-            // 'MaterialTheme' provides the default styling for the app.
             MaterialTheme {
-                // 'Surface' is a container that provides a background color.
                 Surface(color = Color.Black) {
-                    // 'MoonScene' is the main composable function that contains the entire UI of the app.
                     MoonScene()
                 }
             }
@@ -276,16 +269,12 @@ class MainActivity : ComponentActivity() {
 }
 
 /**
- * This is the main composable function that builds the entire user interface of the app.
- * It's marked with '@Composable', which means it's a UI component that can be used in Jetpack Compose.
+ * Composes the main moon scene, HUD, journal, and quote UI layers.
  */
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun MoonScene() {
-    // This is the central host for the UI. It fetches moon and quote data, provides debug controls,
-    // and combines all the different visual layers.
-
-    // 'LocalContext.current' gives us the application's context, which is needed for things like accessing resources.
+    // Central UI host that ties together data, overlays, and debug controls.
     val context = LocalContext.current
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
     var observerLat by remember { mutableDoubleStateOf(KimConfig.OBS_LAT) }
@@ -330,29 +319,27 @@ fun MoonScene() {
             permissionLauncher.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
         }
     }
-    // 'rememberCoroutineScope' gives us a coroutine scope that is tied to the lifecycle of this composable.
+    // UI-scoped coroutines for save/export work.
     val coroutineScope = rememberCoroutineScope()
-    // 'remember' is a key function in Compose. It stores a value that will survive recompositions (UI updates).
-    // Here, we check if the app is in a debuggable mode.
+    // Gate debug UI on app debuggability.
     val isDebuggable = remember {
         (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
     }
 
-    // 'mutableStateOf' creates a piece of state that Compose can observe. When this state changes, any composable
-    // that uses it will be recomposed (redrawn).
-    var now by remember { mutableStateOf(Instant.now()) } // The current time, updated periodically.
+    // Live clock used for daily quote and moon calculations.
+    var now by remember { mutableStateOf(Instant.now()) }
     val currentLocalDay = remember(now) { LocalDateTime.ofInstant(now, ZoneId.systemDefault()).toLocalDate() }
-    val quoteRepository = remember { DailyQuoteRepository(context) } // The repository for fetching quotes.
+    val quoteRepository = remember { DailyQuoteRepository(context) }
     val journalRepository = remember { JournalRepository(context) }
     val journalReviewViewModel: JournalReviewViewModel =
         viewModel(factory = JournalReviewViewModelFactory(journalRepository))
     val journalExportGson = remember { GsonBuilder().setPrettyPrinting().create() }
-    var todayQuote by remember { mutableStateOf<Quote?>(null) } // The quote for the current day.
-    var quoteVisible by remember { mutableStateOf(false) } // Whether the quote scroll is visible or not.
-    var quoteDebugMode by remember { mutableStateOf(false) } // A flag for debugging the quote display.
-    var quoteCycleEnabled by remember { mutableStateOf(false) } // Automatically cycle quotes in debug mode.
-    var quoteDay by remember { mutableStateOf<LocalDate?>(null) } // The day associated with the current quote.
-    var debugMenuEnabled by remember { mutableStateOf(false) } // Whether the debug menu is enabled.
+    var todayQuote by remember { mutableStateOf<Quote?>(null) }
+    var quoteVisible by remember { mutableStateOf(false) }
+    var quoteDebugMode by remember { mutableStateOf(false) }
+    var quoteCycleEnabled by remember { mutableStateOf(false) }
+    var quoteDay by remember { mutableStateOf<LocalDate?>(null) }
+    var debugMenuEnabled by remember { mutableStateOf(false) }
     var journalVisible by remember { mutableStateOf(false) }
     var journalReviewVisible by remember { mutableStateOf(false) }
     var journalReviewSeedEnabled by remember { mutableStateOf(false) }
@@ -363,6 +350,10 @@ fun MoonScene() {
     var journalBody by remember { mutableStateOf("") }
     var journalMoodX by remember { mutableFloatStateOf(0f) }
     var journalMoodY by remember { mutableFloatStateOf(0f) }
+    var journalIsPeriod by remember { mutableStateOf(false) }
+    var journalIsGreenEvent by remember { mutableStateOf(false) }
+    var journalIsYellowEvent by remember { mutableStateOf(false) }
+    var journalIsBlueEvent by remember { mutableStateOf(false) }
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json")
@@ -377,24 +368,22 @@ fun MoonScene() {
         }
     }
 
-    // 'LaunchedEffect' is used to run a coroutine when the composable first appears.
-    // Here, we load the daily quote when the app starts.
+    // Load the initial daily quote when the scene enters composition.
     LaunchedEffect(Unit) {
         todayQuote = quoteRepository.getQuoteForToday()
         quoteVisible = todayQuote != null
         quoteDay = currentLocalDay
     }
 
-    // This 'LaunchedEffect' runs a loop that updates the 'now' state every minute.
-    // This keeps the astronomical data live.
+    // Keep time-based astronomy values up to date.
     LaunchedEffect(Unit) {
-        while (isActive) { // 'isActive' is true as long as the coroutine is active.
+        while (isActive) {
             now = Instant.now()
-            delay(60000) // Pause the coroutine for 60,000 milliseconds (1 minute).
+            delay(60000)
         }
     }
 
-    // When the local day flips, fetch the new daily quote and let the scroll animate it in.
+    // Refresh the daily quote when the local day changes.
     LaunchedEffect(currentLocalDay) {
         if (quoteDay != null && quoteDay != currentLocalDay) {
             todayQuote = quoteRepository.getQuoteForToday()
@@ -411,10 +400,18 @@ fun MoonScene() {
             journalBody = entry.body
             journalMoodX = entry.moodX
             journalMoodY = entry.moodY
+            journalIsPeriod = entry.isPeriod
+            journalIsGreenEvent = entry.isGreenEvent
+            journalIsYellowEvent = entry.isYellowEvent
+            journalIsBlueEvent = entry.isBlueEvent
         } else {
             journalBody = ""
             journalMoodX = 0f
             journalMoodY = 0f
+            journalIsPeriod = false
+            journalIsGreenEvent = false
+            journalIsYellowEvent = false
+            journalIsBlueEvent = false
         }
     }
 
@@ -432,8 +429,7 @@ fun MoonScene() {
         )
     }
 
-    // 'remember' with a key. The code inside the block will only be re-executed if the key changes.
-    // Here, we recalculate the full moon count whenever 'now' changes.
+    // Recompute the full moon count whenever the time tick changes.
     val fullMoonCount = remember(now) {
         MoonFullMoonsMeeus.countFullMoons(KimConfig.BIRTH_INSTANT, now)
     }
@@ -450,7 +446,7 @@ fun MoonScene() {
     }
 
 
-    // --- Debug State ---
+    // Debug-only overrides for HUD values.
     var phaseOverrideEnabled by remember { mutableStateOf(false) }
     var phaseOverridePercent by remember { mutableIntStateOf(liveIlluminationPercent) }
     var phaseOverrideWaxing by remember { mutableStateOf(liveWaxing) }
@@ -486,8 +482,7 @@ fun MoonScene() {
         }
     }
 
-    // 'defaultTransforms' holds the original, hard-coded positions and scales for each HUD element.
-    // These are the reference values that we can reset to.
+    // Default HUD layer transforms used as the debug baseline.
     val defaultTransforms = remember {
         mapOf(
             DebugHudElement.PLAQUE to HudLayerTransform(offset = DpOffset(0.dp, 36.dp)),
@@ -501,7 +496,10 @@ fun MoonScene() {
             DebugHudElement.COMPASS_ARROW to HudLayerTransform(offset = DpOffset(186.dp, (-50).dp), scale = 0.3f),
             DebugHudElement.COMPASS_DETAIL_LOWER to HudLayerTransform(offset = DpOffset(0.dp, 35.dp), scale = 0.4f),
             DebugHudElement.DIGITS to HudLayerTransform(offset = DpOffset(278.dp, 110.dp), scale = 1.05f),
-            DebugHudElement.LUNATION_BORDER to HudLayerTransform(offset = DpOffset(270.dp, 105.dp),scale = 0.95f)
+            DebugHudElement.LUNATION_BORDER to HudLayerTransform(offset = DpOffset(270.dp, 105.dp),scale = 0.95f),
+            DebugHudElement.LUNATION_LABEL to HudLayerTransform(offset = DpOffset(240.dp, 80.dp), scale = 0.5f),
+            DebugHudElement.ILLUMINATION_LABEL to HudLayerTransform(offset = DpOffset(55.dp, 80.dp), scale = 0.5f),
+            DebugHudElement.MOON_IN_LABEL to HudLayerTransform(offset = DpOffset((-10).dp, 80.dp), scale = 0.5f)
         )
     }
 
@@ -509,18 +507,17 @@ fun MoonScene() {
     val moonInSignTransforms = remember { ZodiacSign.entries.associateWith { HudLayerTransform() } }
 
 
-    // A helper function to get the current transform for a HUD element.
+    // Resolve the active transform for a HUD layer.
     fun hudTransformFor(element: DebugHudElement): HudLayerTransform {
         return hudTransforms[element] ?: HudLayerTransform()
     }
 
-    // A helper function to get the current transform for a zodiac sign tile.
+    // Per-zodiac offset/scale overrides for the moon-in tile art.
     fun signTransformFor(sign: ZodiacSign): HudLayerTransform {
         return moonInSignTransforms[sign] ?: HudLayerTransform()
     }
 
-    // A helper function to combine a base transform with a detail transform.
-    // This is used to layer the per-sign transform on top of the shared "moon in" transform.
+    // Combine the shared moon-in transform with a per-sign tweak.
     fun combineTransforms(base: HudLayerTransform, detail: HudLayerTransform): HudLayerTransform {
         return HudLayerTransform(
             offset = DpOffset(base.offset.x + detail.offset.x, base.offset.y + detail.offset.y),
@@ -528,11 +525,10 @@ fun MoonScene() {
         )
     }
 
-    // The height of the lunation border, which can be adjusted in debug mode.
+    // Tunable lunation border height for HUD layout tweaks.
     var lunationBorderHeight by remember { mutableStateOf(42.dp) }
 
-    // --- Finalized Scene Sizes ---
-    // These are the final sizes and positions for the main scene elements.
+    // Fixed scene sizing constants.
     val astrolabeSizeDp = 505f
     val moonSizeDp = 281f
     val hudScale = 1.0f
@@ -541,7 +537,7 @@ fun MoonScene() {
     val digitHeight = (69/2).dp
     val digitSpacing = 0.dp
 
-    // Decide which moon-in tile and lunation count to display based on debug settings.
+    // Select the active moon-in tile and lunation count (debug overrides when enabled).
     val displayedMoonInSign = if (moonInOverrideEnabled) selectedMoonInSign else moonSign
     val moonInDrawable = remember(displayedMoonInSign) { zodiacTileResId(displayedMoonInSign) }
     val moonInTransform = combineTransforms(
@@ -568,10 +564,9 @@ fun MoonScene() {
         )
     } ?: currentJournalStamp
 
-    // A function to show the next debug quote.
+    // Debug: advance to the next quote without marking it as used.
     fun showNextDebugQuote() {
         coroutineScope.launch {
-            // This bypasses the "used" tracking to quickly preview all quotes.
             todayQuote = quoteRepository.nextDebugQuote()
             quoteVisible = todayQuote != null
             quoteDay = currentLocalDay
@@ -629,7 +624,7 @@ fun MoonScene() {
         return preview
     }
 
-    // Automatically cycle through quotes when enabled in debug UI.
+    // Auto-cycle quotes in debug mode.
     LaunchedEffect(quoteCycleEnabled, quoteDebugMode) {
         if (!quoteCycleEnabled || !quoteDebugMode) return@LaunchedEffect
         while (isActive && quoteCycleEnabled && quoteDebugMode) {
@@ -638,15 +633,12 @@ fun MoonScene() {
         }
     }
 
-    // --- Phone & Animation State ---
-
-    // The root composable of the scene.
+    // Scene composition stack and overlays.
     Box(
         modifier = Modifier
-            .fillMaxSize() // Fill the whole screen.
+            .fillMaxSize()
     ) {
-        // --- SCENE LAYERS ---
-        // The layers are drawn in order, so the ones at the bottom of the code appear on top.
+        // Scene layers render bottom-to-top in declaration order.
         Image(painter = painterResource(id = R.drawable.starfield_birth_malaga), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
         Image(
             painter = painterResource(id = R.drawable.splash_nebula),
@@ -667,10 +659,10 @@ fun MoonScene() {
             )
         }
 
-        // The astrolabe ring sits on top of the moon disk.
+        // Astrolabe ring sits above the moon disk.
         Image(painter = painterResource(id = R.drawable.astrolabe_ring), contentDescription = null, modifier = Modifier.align(Alignment.Center).size(astrolabeSizeDp.dp).alpha(astrolabeAlpha), contentScale = ContentScale.Fit)
 
-        // The HUD plaque is aligned to the bottom of the screen.
+        // HUD plaque anchored to the bottom of the scene.
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -679,8 +671,7 @@ fun MoonScene() {
                 .offset(y = hudOffsetY)
                 .scale(hudScale)
         ) {
-            // The 'HudPlaque' composable is composed of many positioned layers.
-            // The 'transforms' parameter allows for live adjustment of these layers in debug mode.
+            // HUD plaque stack with debug-tunable layer transforms.
             HudPlaque(
                 modifier = Modifier.fillMaxSize(),
                 lunationCount = lunationDisplayCount,
@@ -699,6 +690,9 @@ fun MoonScene() {
                     lunationBorder = hudTransformFor(DebugHudElement.LUNATION_BORDER),
                     illumBorder = hudTransformFor(DebugHudElement.ILLUMINATION_BORDER),
                     moonInBorder = hudTransformFor(DebugHudElement.MOON_IN_BORDER),
+                    lunationLabel = hudTransformFor(DebugHudElement.LUNATION_LABEL),
+                    illumLabel = hudTransformFor(DebugHudElement.ILLUMINATION_LABEL),
+                    moonInLabel = hudTransformFor(DebugHudElement.MOON_IN_LABEL),
                     compassCircle = hudTransformFor(DebugHudElement.COMPASS_CIRCLE),
                     compassRidge = hudTransformFor(DebugHudElement.COMPASS_RIDGE),
                     compassArrow = hudTransformFor(DebugHudElement.COMPASS_ARROW),
@@ -708,13 +702,13 @@ fun MoonScene() {
             )
         }
 
-        // The daily quote scroll.
+        // Daily quote scroll overlay.
         todayQuote?.let { quote ->
             BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxSize()
             )@Suppress("UnusedBoxWithConstraintsScope") {
-                // Precompute the coordinates for the small, minimized scroll and the large, expanded scroll.
+                // Precompute scroll positions for minimized/expanded states.
                 val scrollMaxWidth = maxWidth.coerceAtMost(360.dp)
                 val journalButtonSize = 108.dp
                 val journalButtonSpacing = 8.dp
@@ -722,14 +716,14 @@ fun MoonScene() {
                 var scrollSizePx by remember { mutableStateOf(IntSize.Zero) }
                 val closedScale = 0.10f
                 val openScale = 1f
-                // Anchor the mini scroll to the top-right.
+                // Anchor the minimized scroll to the top-right.
                 val closedX = maxWidth - scrollMaxWidth - 16.dp
                 val closedY = 16.dp
                 // Center the expanded scroll.
                 val openX = (maxWidth - scrollMaxWidth) / 2
                 val openY = 16.dp
 
-                // Animate the position and scale of the scroll when it opens and closes.
+                // Animate scroll position and scale between states.
                 val animatedX by animateDpAsState(if (quoteVisible) openX else closedX, label = "quoteX")
                 val animatedY by animateDpAsState(if (quoteVisible) openY else closedY, label = "quoteY")
                 val animatedScale by animateFloatAsState(if (quoteVisible) openScale else closedScale, label = "quoteScale")
@@ -739,7 +733,7 @@ fun MoonScene() {
                 // val journalButtonY = animatedY + scaledScrollHeight + journalButtonSpacing - 10.dp
                 val journalButtonY =  65.dp
 
-                // When the scroll is open, a tap or upward swipe anywhere closes it.
+                // When open, allow tap or upward swipe anywhere to dismiss.
                 if (quoteVisible) {
                     val swipeCloseThreshold = with(density) { 24.dp.toPx() }
                     Box(
@@ -764,7 +758,7 @@ fun MoonScene() {
                     )
                 }
 
-                // The Box containing the quote scroll.
+                // Quote scroll container.
                 Box(
                     modifier = Modifier
                         .offset {
@@ -775,14 +769,14 @@ fun MoonScene() {
                                 )
                             }
                         }
-                        // The 'graphicsLayer' modifier is used to apply transformations like scaling.
+                        // Apply scale animation via graphicsLayer.
                         .graphicsLayer {
                             scaleX = animatedScale
                             scaleY = animatedScale
-                            // Scale from the top-right corner so the mini scroll stays in the corner.
+                            // Scale from the top-right to keep the mini scroll pinned.
                             transformOrigin = TransformOrigin(1f, 0f)
                         }
-                        // The mini scroll is clickable to open it.
+                        // Tap the mini scroll to expand.
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = null
@@ -811,7 +805,7 @@ fun MoonScene() {
             }
         }
 
-        // The debug UI for the quote feature.
+        // Debug UI overlay.
         if (isDebuggable && debugMenuEnabled) {
             Column(
                 modifier = Modifier
@@ -1049,6 +1043,14 @@ fun MoonScene() {
                     journalMoodX = x
                     journalMoodY = y
                 },
+                isPeriod = journalIsPeriod,
+                onTogglePeriod = { journalIsPeriod = !journalIsPeriod },
+                isGreenEvent = journalIsGreenEvent,
+                onToggleGreenEvent = { journalIsGreenEvent = !journalIsGreenEvent },
+                isYellowEvent = journalIsYellowEvent,
+                onToggleYellowEvent = { journalIsYellowEvent = !journalIsYellowEvent },
+                isBlueEvent = journalIsBlueEvent,
+                onToggleBlueEvent = { journalIsBlueEvent = !journalIsBlueEvent },
                 onSave = {
                     val nowMillis = System.currentTimeMillis()
                     val existing = journalEntry
@@ -1074,7 +1076,11 @@ fun MoonScene() {
                         lunationDay = stampForSave.lunationDay,
                         phaseLabel = stampForSave.phaseLabel,
                         illuminationPercent = stampForSave.illuminationPercent,
-                        moonSign = stampForSave.moonSign
+                        moonSign = stampForSave.moonSign,
+                        isPeriod = journalIsPeriod,
+                        isGreenEvent = journalIsGreenEvent,
+                        isYellowEvent = journalIsYellowEvent,
+                        isBlueEvent = journalIsBlueEvent
                     )
                     coroutineScope.launch {
                         journalRepository.upsertEntry(entry)
@@ -1085,6 +1091,7 @@ fun MoonScene() {
                 onReview = { journalReviewVisible = true },
                 onClose = { journalVisible = false },
                 saveEnabled = journalBody.isNotBlank(),
+                readOnly = false,
                 engraveNonce = journalEngraveNonce,
                 modifier = Modifier.zIndex(3f)
             )

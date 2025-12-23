@@ -9,17 +9,22 @@ import androidx.datastore.preferences.core.longPreferencesKey // Key for storing
 import androidx.datastore.preferences.core.stringPreferencesKey // Key for storing a String value in DataStore.
 import androidx.datastore.preferences.core.stringSetPreferencesKey // Key for storing a Set of Strings in DataStore.
 import androidx.datastore.preferences.preferencesDataStore // Function to create a DataStore instance.
-import com.google.gson.Gson // A library to convert JSON data to Kotlin objects and vice-versa.
-import com.google.gson.annotations.SerializedName // Maps JSON fields to Kotlin properties.
+import com.google.gson.JsonElement
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
+import com.google.gson.Strictness
+import com.google.gson.stream.JsonReader
+import com.google.gson.stream.JsonToken
+import okhttp3.ResponseBody
 import retrofit2.Retrofit // A library for making network requests (like fetching data from the internet).
 import retrofit2.converter.gson.GsonConverterFactory // A converter for Retrofit to use Gson for JSON processing.
 import retrofit2.http.GET // An annotation for Retrofit to specify an HTTP GET request.
-import retrofit2.http.Path // URL path parameter annotation for Retrofit.
-import retrofit2.http.Query // URL query parameter annotation for Retrofit.
 import retrofit2.http.Url // An annotation for Retrofit to use a dynamic URL.
 import kotlinx.coroutines.Dispatchers // Provides different threads for running tasks (like network or disk operations).
 import kotlinx.coroutines.flow.first // Reads the current DataStore value once.
 import kotlinx.coroutines.withContext // A function to switch to a different thread for a block of code.
+import java.io.StringReader
+import java.security.MessageDigest
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Locale // Locale for stable string normalization.
@@ -57,12 +62,6 @@ private data class QuotePack(
     val messages: List<Quote> = emptyList()
 )
 
-private data class GitHubContentItem(
-    val name: String? = null,
-    val type: String? = null,
-    @SerializedName("download_url") val downloadUrl: String? = null
-)
-
 /**
  * An 'interface' is a contract that defines a set of methods that a class can implement.
  * This 'QuoteService' interface is used by Retrofit to define how to fetch data from a URL.
@@ -75,17 +74,7 @@ private interface QuoteService {
      * 'suspend' means this function is a coroutine and can be paused and resumed, which is great for long-running tasks like network requests.
      */
     @GET
-    suspend fun fetchPack(@Url url: String): QuotePack
-}
-
-private interface GitHubContentService {
-    @GET("repos/{owner}/{repo}/contents/{path}")
-    suspend fun listContents(
-        @Path("owner") owner: String,
-        @Path("repo") repo: String,
-        @Path("path") path: String,
-        @Query("ref") ref: String
-    ): List<GitHubContentItem>
+    suspend fun fetchPack(@Url url: String): ResponseBody
 }
 
 /**
@@ -111,15 +100,39 @@ private data class SourcedQuote(
 class DailyQuoteRepository(
     private val context: Context
 ) {
-    // An instance of Gson, used for converting JSON to Kotlin objects.
-    private val gson = Gson()
+    private data class RemotePackDefinition(val fileName: String, val sha256: String) {
+        fun url(baseUrl: String): String = baseUrl + fileName
+    }
 
     // Remote pack list for live updates without rebuilding the app.
-    private val remotePackBaseUrl = "https://raw.githubusercontent.com/noPwRon/BirthMoonCount/master/app/src/main/assets/"
     private val remoteRepoOwner = "noPwRon"
     private val remoteRepoName = "BirthMoonCount"
+    private val remoteRepoCommit = "2af7c6977a268eaf91f4744601d939ebd16543e9"
     private val remoteRepoPath = "app/src/main/assets"
-    private val remoteRepoRef = "master"
+    private val remotePackBaseUrl =
+        "https://raw.githubusercontent.com/$remoteRepoOwner/$remoteRepoName/$remoteRepoCommit/$remoteRepoPath/"
+    private val remotePackDefinitions = listOf(
+        RemotePackDefinition(
+            fileName = "custom_quotes.json",
+            sha256 = "663855456831400be189e8c08ecd415c977fe61aa265ce34c0cd2c4f3abcd02a"
+        ),
+        RemotePackDefinition(
+            fileName = "russian_culture.json",
+            sha256 = "c5330c9a742f1c9bbb641f96906e7984d66850bd01f2a12dadb3c4efb7539a74"
+        ),
+        RemotePackDefinition(
+            fileName = "science.json",
+            sha256 = "308cd56104bd72dd10a4423b2a92d5a332079ea55806a792edc5ff493101cf47"
+        ),
+        RemotePackDefinition(
+            fileName = "spanish_culture.json",
+            sha256 = "59ca0673023e7ab06890fe0277701e473e1c7344c2d5eb7258b60b8407656b19"
+        ),
+        RemotePackDefinition(
+            fileName = "women_only.json",
+            sha256 = "3b73f9269422179232327c15dc685995e4bb20f86e12e21ca5d178fb9dd9efe8"
+        )
+    )
     private val remoteFetchIntervalMs = 7L * 24L * 60L * 60L * 1000L
     private val lastFetchKey = longPreferencesKey("last_remote_fetch_ms")
     private val lastAttemptKey = longPreferencesKey("last_remote_attempt_ms")
@@ -146,15 +159,6 @@ class DailyQuoteRepository(
 
     // Creates an implementation of the 'QuoteService' interface using Retrofit. Also uses 'by lazy'.
     private val quoteService by lazy { retrofit.create(QuoteService::class.java) }
-
-    private val githubRetrofit by lazy {
-        Retrofit.Builder()
-            .baseUrl("https://api.github.com/") // Base URL for GitHub API.
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-    }
-
-    private val githubContentService by lazy { githubRetrofit.create(GitHubContentService::class.java) }
 
     // A counter for the debug function to cycle through quotes.
     private var debugIndex = 0
@@ -206,12 +210,13 @@ class DailyQuoteRepository(
             runCatching {
                 // Open the asset file and read it.
                 context.assets.open(file).bufferedReader().use { reader ->
-                    // Use Gson to parse the JSON file into a 'QuotePack'.
-                    val pack = gson.fromJson(reader, QuotePack::class.java)
-                    val packId = pack.packId ?: file.substringBeforeLast('.')
-                    // Add all the quotes from the pack to our combined list.
-                    val quotes = pack.messages.map { SourcedQuote(it, isRemote = false, packId = packId) }
-                    addQuotes(quotes, preferRemote = false)
+                    val json = reader.readText()
+                    val pack = parseQuotePack(json)
+                    if (pack != null) {
+                        val packId = pack.packId ?: file.substringBeforeLast('.')
+                        val quotes = pack.messages.map { SourcedQuote(it, isRemote = false, packId = packId) }
+                        addQuotes(quotes, preferRemote = false)
+                    }
                 }
             }
         }
@@ -220,17 +225,20 @@ class DailyQuoteRepository(
         var attemptedRemote = false
         if (shouldFetchRemote) {
             attemptedRemote = true
-            val remoteSources = fetchRemotePackSources()
-            remoteSources.forEach { source ->
-                val url = source.url
+            remotePackDefinitions.forEach { definition ->
+                val url = definition.url(remotePackBaseUrl)
                 runCatching {
-                    val pack = quoteService.fetchPack(url)
-                    val packId = pack.packId ?: source.fileName.substringBeforeLast('.')
-                    val quotes = pack.messages.map {
-                        SourcedQuote(it.copy(weight = maxOf(1, it.weight)), isRemote = true, packId = packId)
+                    val body = quoteService.fetchPack(url)
+                    val bytes = body.bytes()
+                    val pack = parseRemotePack(bytes, definition)
+                    if (pack != null) {
+                        val packId = pack.packId ?: definition.fileName.substringBeforeLast('.')
+                        val quotes = pack.messages.map {
+                            SourcedQuote(it.copy(weight = maxOf(1, it.weight)), isRemote = true, packId = packId)
+                        }
+                        addQuotes(quotes, preferRemote = true)
+                        remoteSuccess = true
                     }
-                    addQuotes(quotes, preferRemote = true)
-                    remoteSuccess = true
                 }
             }
         }
@@ -344,26 +352,101 @@ class DailyQuoteRepository(
         }
     }
 
-    private data class RemotePackSource(val fileName: String, val url: String)
+    private fun parseRemotePack(bytes: ByteArray, definition: RemotePackDefinition): QuotePack? {
+        if (bytes.isEmpty() || bytes.size > MAX_PACK_BYTES) return null
+        val hash = sha256Hex(bytes)
+        if (!hash.equals(definition.sha256, ignoreCase = true)) return null
+        val json = bytes.toString(Charsets.UTF_8)
+        return parseQuotePack(json)
+    }
 
-    private suspend fun fetchRemotePackSources(): List<RemotePackSource> {
-        val listed = runCatching {
-            githubContentService.listContents(remoteRepoOwner, remoteRepoName, remoteRepoPath, remoteRepoRef)
-                .filter { it.type == "file" && it.name?.endsWith(".json") == true && !it.downloadUrl.isNullOrBlank() }
-                .map { RemotePackSource(it.name!!, it.downloadUrl!!) }
-        }.getOrElse { emptyList() }
+    private fun parseQuotePack(json: String): QuotePack? {
+        if (json.isBlank()) return null
+        if (json.length > MAX_PACK_CHARS) return null
+        val reader = JsonReader(StringReader(json)).apply {
+            setStrictness(Strictness.STRICT)
+        }
+        val element = try {
+            JsonParser.parseReader(reader)
+        } catch (_: Exception) {
+            return null
+        }
+        if (reader.peek() != JsonToken.END_DOCUMENT) return null
+        return parseQuotePackElement(element)
+    }
 
-        if (listed.isNotEmpty()) {
-            return listed
+    private fun parseQuotePackElement(element: JsonElement): QuotePack? {
+        if (!element.isJsonObject) return null
+        val obj = element.asJsonObject
+        if (!hasOnlyKeys(obj, PACK_KEYS)) return null
+
+        val packId = readOptionalString(obj, "packId", MAX_PACK_ID_LENGTH)
+            ?: obj.get("packId")?.let { return null }
+        if (packId != null && packId.isBlank()) return null
+        val packVersion = readOptionalInt(obj, "packVersion", MAX_PACK_VERSION)
+            ?: obj.get("packVersion")?.let { return null }
+
+        val messages = obj.get("messages") ?: return null
+        if (!messages.isJsonArray) return null
+        val messagesArray = messages.asJsonArray
+        if (messagesArray.size() > MAX_QUOTES_PER_PACK || messagesArray.size() < 1) return null
+
+        val quotes = ArrayList<Quote>(messagesArray.size())
+        val ids = HashSet<String>(messagesArray.size())
+        for (entry in messagesArray) {
+            if (!entry.isJsonObject) return null
+            val quoteObj = entry.asJsonObject
+            if (!hasOnlyKeys(quoteObj, QUOTE_KEYS)) return null
+
+            val id = readRequiredString(quoteObj, "id", MAX_ID_LENGTH) ?: return null
+            if (!ids.add(id)) return null
+            val text = readRequiredString(quoteObj, "text", MAX_TEXT_LENGTH) ?: return null
+            val author = readRequiredString(quoteObj, "author", MAX_AUTHOR_LENGTH) ?: return null
+            val topic = readRequiredString(quoteObj, "topic", MAX_TOPIC_LENGTH) ?: return null
+            val weight = readOptionalInt(quoteObj, "weight", MAX_WEIGHT)
+                ?: run {
+                    if (quoteObj.get("weight") != null) return null
+                    1
+                }
+            if (weight !in 1..MAX_WEIGHT) return null
+
+            quotes.add(Quote(id = id, text = text, author = author, topic = topic, weight = weight))
         }
 
-        return try {
-            context.assets.list("")?.filter { it.endsWith(".json") }?.map { file ->
-                RemotePackSource(file, remotePackBaseUrl + file)
-            } ?: emptyList()
-        } catch (e: Exception) {
-            emptyList()
-        }
+        return QuotePack(packId = packId, packVersion = packVersion, messages = quotes)
+    }
+
+    private fun hasOnlyKeys(obj: JsonObject, allowed: Set<String>): Boolean {
+        return obj.entrySet().all { it.key in allowed }
+    }
+
+    private fun readRequiredString(obj: JsonObject, key: String, maxLength: Int): String? {
+        val value = readOptionalString(obj, key, maxLength) ?: return null
+        if (value.isBlank()) return null
+        return value
+    }
+
+    private fun readOptionalString(obj: JsonObject, key: String, maxLength: Int): String? {
+        val element = obj.get(key) ?: return null
+        if (!element.isJsonPrimitive || !element.asJsonPrimitive.isString) return null
+        val value = element.asString
+        if (value.length > maxLength) return null
+        return value
+    }
+
+    private fun readOptionalInt(obj: JsonObject, key: String, maxValue: Int): Int? {
+        val element = obj.get(key) ?: return null
+        if (!element.isJsonPrimitive || !element.asJsonPrimitive.isNumber) return null
+        val number = element.asBigDecimal
+        if (number.scale() > 0) return null
+        val value = runCatching { number.intValueExact() }.getOrNull() ?: return null
+        if (value < 0 || value > maxValue) return null
+        return value
+    }
+
+    private fun sha256Hex(bytes: ByteArray): String {
+        val digest = MessageDigest.getInstance("SHA-256").digest(bytes)
+        return digest.joinToString("") { byte -> "%02x".format(byte) }
     }
 
     suspend fun findLongestQuote(): Quote? = withContext(Dispatchers.IO) {
@@ -378,3 +461,17 @@ class DailyQuoteRepository(
         quotes.maxByOrNull { it.quote.author.length }?.quote
     }
 }
+
+private const val MAX_PACK_BYTES = 256_000
+private const val MAX_PACK_CHARS = 256_000
+private const val MAX_QUOTES_PER_PACK = 512
+private const val MAX_ID_LENGTH = 64
+private const val MAX_TEXT_LENGTH = 512
+private const val MAX_AUTHOR_LENGTH = 64
+private const val MAX_TOPIC_LENGTH = 32
+private const val MAX_PACK_ID_LENGTH = 64
+private const val MAX_PACK_VERSION = 999
+private const val MAX_WEIGHT = 10
+
+private val PACK_KEYS = setOf("packId", "packVersion", "messages")
+private val QUOTE_KEYS = setOf("id", "text", "author", "topic", "weight")

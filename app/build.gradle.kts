@@ -69,6 +69,7 @@ dependencies {
     // Retrofit for networking
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.gson)
+    implementation(libs.gson)
     // Fused location provider (coarse location).
     implementation(libs.play.services.location)
 }

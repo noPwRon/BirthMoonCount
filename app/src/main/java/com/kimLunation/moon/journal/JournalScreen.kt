@@ -26,6 +26,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.DisableSelection // Prevent selection on decorative labels.
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -58,7 +59,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
@@ -110,6 +114,42 @@ fun JournalGlyphButton(
     }
 }
 
+@Composable
+fun JewelButton(
+    isToggled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    size: Dp = 24.dp,
+    enabled: Boolean = true
+) {
+    val goldDark = Color(0xFFC8A048)
+    val goldLight = Color(0xFFF8E0A0)
+    val redDark = Color(0xFFB00020)
+    val redLight = Color(0xFFE06060)
+
+    val animatedTopColor by animateColorAsState(
+        targetValue = if (isToggled) redLight else goldLight,
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+    )
+    val animatedBottomColor by animateColorAsState(
+        targetValue = if (isToggled) redDark else goldDark,
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+    )
+
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(CircleShape)
+            .clickable(enabled = enabled, onClick = onClick)
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(animatedTopColor, animatedBottomColor)
+                )
+            )
+            .border(width = 1.dp, color = goldDark, shape = CircleShape)
+    )
+}
+
 /**
  * The journaling screen UI.
  */
@@ -121,10 +161,19 @@ fun JournalScreen(
     moodX: Float,
     moodY: Float,
     onMoodChange: (Float, Float) -> Unit,
+    isPeriod: Boolean,
+    onTogglePeriod: () -> Unit,
+    isGreenEvent: Boolean,
+    onToggleGreenEvent: () -> Unit,
+    isYellowEvent: Boolean,
+    onToggleYellowEvent: () -> Unit,
+    isBlueEvent: Boolean,
+    onToggleBlueEvent: () -> Unit,
     onSave: () -> Unit,
     onReview: () -> Unit,
     onClose: () -> Unit,
     saveEnabled: Boolean,
+    readOnly: Boolean,
     engraveNonce: Int,
     modifier: Modifier = Modifier
 ) {
@@ -209,13 +258,24 @@ fun JournalScreen(
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = "Entry",
-                    color = textColor,
-                    fontFamily = FontFamily.Serif,
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = 0.5.sp
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Entry",
+                        color = textColor,
+                        fontFamily = FontFamily.Serif,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = 0.5.sp
+                    )
+                    JewelButton(
+                        isToggled = isPeriod,
+                        onClick = onTogglePeriod,
+                        enabled = !readOnly
+                    )
+                }
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -228,6 +288,7 @@ fun JournalScreen(
                             .fillMaxSize(),
                         minLines = 6,
                         maxLines = 6,
+                        readOnly = readOnly,
                         textStyle = MaterialTheme.typography.bodyLarge.copy(
                             color = textColor,
                             fontFamily = FontFamily.Serif,
@@ -290,7 +351,8 @@ fun JournalScreen(
                             moodX = moodX,
                             moodY = moodY,
                             onMoodChange = onMoodChange,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize(),
+                            readOnly = readOnly
                         )
                         Text(
                             text = "High energy",
@@ -569,12 +631,25 @@ private fun JournalReviewEntryItem(
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Text(
-            text = entry.localDate,
-            color = textColor,
-            fontFamily = FontFamily.Serif,
-            fontWeight = FontWeight.SemiBold
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = entry.localDate,
+                color = textColor,
+                fontFamily = FontFamily.Serif,
+                fontWeight = FontWeight.SemiBold
+            )
+            if (entry.isPeriod) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .background(Color(0xFFB00020), CircleShape)
+                )
+            }
+        }
         Text(
             text = "${entry.phaseLabel} - ${entry.illuminationPercent}%",
             color = subTextColor,
@@ -794,7 +869,8 @@ private fun MoodGrid(
     moodX: Float,
     moodY: Float,
     onMoodChange: (Float, Float) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    readOnly: Boolean = false
 ) {
     var gridSize by remember { mutableStateOf(IntSize.Zero) }
     val borderColor = Color(0xFFC9B38A).copy(alpha = 0.4f)
@@ -806,17 +882,21 @@ private fun MoodGrid(
             .aspectRatio(1f)
             .border(1.dp, borderColor)
             .onSizeChanged { gridSize = it }
-            .pointerInput(Unit) {
-                detectTapGestures { offset ->
-                    updateMoodFromOffset(offset, gridSize, onMoodChange)
+            .then(
+                if (readOnly) Modifier else Modifier.pointerInput(Unit) {
+                    detectTapGestures { offset ->
+                        updateMoodFromOffset(offset, gridSize, onMoodChange)
+                    }
                 }
-            }
-            .pointerInput(Unit) {
-                detectDragGestures { change, _ ->
-                    updateMoodFromOffset(change.position, gridSize, onMoodChange)
-                    change.consume()
+            )
+            .then(
+                if (readOnly) Modifier else Modifier.pointerInput(Unit) {
+                    detectDragGestures { change, _ ->
+                        updateMoodFromOffset(change.position, gridSize, onMoodChange)
+                        change.consume()
+                    }
                 }
-            }
+            )
     ) {
         Canvas(modifier = Modifier.fillMaxSize()) {
             val centerX = size.width / 2f

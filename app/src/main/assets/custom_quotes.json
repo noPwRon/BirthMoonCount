@@ -4,14 +4,20 @@
   "messages": [
     {
       "id": "cu_0001",
-      "text": "I never suspected how much I would come to care for you, but I'm glad the world brought us together.", 
+      "text": "I never suspected how much I would come to care for you, but I'm glad the world brought us together.",
       "author": "Jeremy Guido",
       "topic": "Love"
-    }, 
+    },
     {
       "id": "cu_0002",
-      "text": "You are a goddess, amazing mother, and a true companion." ,
+      "text": "You are a goddess, amazing mother, and a true companion.",
       "author": "Jeremy Guido",
+      "topic": "Personal"
+    },
+    {
+      "id": "cu_0003",
+      "text": "I'm sorry I am a man.",
+      "author": "Jeremy Guido (: ",
       "topic": "Personal"
     }
   ]
