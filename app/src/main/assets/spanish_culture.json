@@ -1,6 +1,6 @@
 {
   "packId": "spanish_culture_v1",
-  "packVersion": 1,
+  "packVersion": 2,
   "messages": [
     {
       "id": "sp_0001",
@@ -22,31 +22,31 @@
     },
     {
       "id": "sp_0004",
-      "text": "El amor nace del deseo súbito de hacer eterno lo pasajero.",
-      "author": "Ramón Gómez de la Serna",
-      "topic": "love"
-    },
-    {
-      "id": "sp_0005",
-      "text": "Quien lo probó lo sabe.",
-      "author": "Lope de Vega",
+      "text": "Quien no sabe gozar de la ventura cuando le viene, no se debe quejar si se le pasa.",
+      "author": "Miguel de Cervantes Saavedra",
       "topic": "thought_provoking"
     },
     {
-      "id": "sp_0006",
-      "text": "No hay cosa más cara que la que no se compra.",
+      "id": "sp_0005",
+      "text": "La brevedad es lisonjera, y más negociante.",
       "author": "Baltasar Gracián",
       "topic": "wisdom"
     },
     {
-      "id": "sp_0007",
+      "id": "sp_0006",
       "text": "Vivo sin vivir en mí, y tan alta vida espero, que muero porque no muero.",
       "author": "Teresa de Ávila",
       "topic": "thought_provoking"
     },
     {
+      "id": "sp_0007",
+      "text": "Bien predica quien bien vive.",
+      "author": "Miguel de Cervantes Saavedra",
+      "topic": "uplifting"
+    },
+    {
       "id": "sp_0008",
-      "text": "La brevedad es lisonjera, y más negociante.",
+      "text": "Lo bueno, si breve, dos veces bueno.",
       "author": "Baltasar Gracián",
       "topic": "wisdom"
     },
@@ -58,8 +58,644 @@
     },
     {
       "id": "sp_0010",
-      "text": "Bien predica quien bien vive.",
+      "text": "La vida es sueño, y los sueños, sueños son.",
+      "author": "Pedro Calderón de la Barca",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0011",
+      "text": "El amor nace del deseo súbito de hacer eterno lo pasajero.",
+      "author": "Ramón Gómez de la Serna",
+      "topic": "love"
+    },
+    {
+      "id": "sp_0012",
+      "text": "No hay cosa más cara que la que no se compra.",
+      "author": "Baltasar Gracián",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0013",
+      "text": "La paciencia todo lo alcanza.",
+      "author": "Teresa de Ávila",
+      "topic": "uplifting"
+    },
+    {
+      "id": "sp_0014",
+      "text": "Más vale buen nombre que muchas riquezas.",
       "author": "Miguel de Cervantes Saavedra",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0015",
+      "text": "El sueño es alivio de las miserias de los que las tienen despiertas.",
+      "author": "Miguel de Cervantes Saavedra",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0016",
+      "text": "Nunca mejora su estado quien muda solamente de lugar y no de vida.",
+      "author": "Francisco de Quevedo",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0017",
+      "text": "Amor es fuego que arde sin verse.",
+      "author": "Garcilaso de la Vega",
+      "topic": "love"
+    },
+    {
+      "id": "sp_0018",
+      "text": "Quien pierde la esperanza, lo pierde todo.",
+      "author": "Baltasar Gracián",
+      "topic": "uplifting"
+    },
+    {
+      "id": "sp_0019",
+      "text": "Obrar bien, que Dios es Dios.",
+      "author": "Lope de Vega",
+      "topic": "uplifting"
+    },
+    {
+      "id": "sp_0020",
+      "text": "Donde hay poca justicia, es peligro tener razón.",
+      "author": "Francisco de Quevedo",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0021",
+      "text": "El verdadero valor consiste en hacer sin testigos lo que seríamos capaces de hacer ante todos.",
+      "author": "François de La Rochefoucauld",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0022",
+      "text": "La verdad adelgaza y no quiebra.",
+      "author": "Miguel de Cervantes Saavedra",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0023",
+      "text": "El mayor pecado del hombre es haber nacido.",
+      "author": "Pedro Calderón de la Barca",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0024",
+      "text": "No se vive para siempre, pero se vive hondo.",
+      "author": "Jorge Manrique",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0025",
+      "text": "Nuestras vidas son los ríos que van a dar en la mar.",
+      "author": "Jorge Manrique",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0026",
+      "text": "El que pierde la honra por el negocio, pierde el negocio y la honra.",
+      "author": "Francisco de Quevedo",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0027",
+      "text": "La verdad puede ser estirada, pero no rota.",
+      "author": "Miguel de Cervantes Saavedra",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0028",
+      "text": "Amar y saber, todo no puede ser.",
+      "author": "Lope de Vega",
+      "topic": "love"
+    },
+    {
+      "id": "sp_0029",
+      "text": "Quien se vence a sí mismo es poderoso.",
+      "author": "Francisco de Quevedo",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0030",
+      "text": "La mayor locura es ver la vida como es y no como debería ser.",
+      "author": "Miguel de Cervantes Saavedra",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0031",
+      "text": "Nada hay tan difícil que no se alcance con constancia.",
+      "author": "Teresa de Ávila",
+      "topic": "uplifting"
+    },
+    {
+      "id": "sp_0032",
+      "text": "El silencio es el mejor intérprete del alma.",
+      "author": "Francisco de Quevedo",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0033",
+      "text": "Quien no se conoce, no se gobierna.",
+      "author": "Baltasar Gracián",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0034",
+      "text": "El amor es tan corto y el olvido tan largo.",
+      "author": "Garcilaso de la Vega",
+      "topic": "love"
+    },
+    {
+      "id": "sp_0035",
+      "text": "No basta saber, se debe también aplicar.",
+      "author": "Francisco de Quevedo",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0036",
+      "text": "El hombre prudente es el que sabe callar.",
+      "author": "Baltasar Gracián",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0037",
+      "text": "El que no sabe sufrir, no sabe vivir.",
+      "author": "Francisco de Quevedo",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0038",
+      "text": "El amor enseña más que mil preceptos.",
+      "author": "Lope de Vega",
+      "topic": "love"
+    },
+    {
+      "id": "sp_0039",
+      "text": "La fama es humo, y la virtud, sustancia.",
+      "author": "Francisco de Quevedo",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0040",
+      "text": "El mundo todo es máscaras.",
+      "author": "Pedro Calderón de la Barca",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0041",
+      "text": "La libertad no se aprende, se ejerce.",
+      "author": "Francisco de Quevedo",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0042",
+      "text": "El alma que anda en amor ni cansa ni se cansa.",
+      "author": "Juan de la Cruz",
+      "topic": "love"
+    },
+    {
+      "id": "sp_0043",
+      "text": "Más se aprende del fracaso que del éxito.",
+      "author": "Miguel de Cervantes Saavedra",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0044",
+      "text": "El sabio gobierna sus pasiones.",
+      "author": "Baltasar Gracián",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0045",
+      "text": "No hay mayor riqueza que la paz interior.",
+      "author": "Teresa de Ávila",
+      "topic": "uplifting"
+    },
+    {
+      "id": "sp_0046",
+      "text": "Amor que se razona, deja de ser amor.",
+      "author": "Lope de Vega",
+      "topic": "love"
+    },
+    {
+      "id": "sp_0047",
+      "text": "Quien no vive como piensa, acaba pensando como vive.",
+      "author": "Francisco de Quevedo",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0048",
+      "text": "El tiempo descubre la verdad.",
+      "author": "Miguel de Cervantes Saavedra",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0049",
+      "text": "La humildad es andar en verdad.",
+      "author": "Teresa de Ávila",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0050",
+      "text": "El mayor poder es el dominio de uno mismo.",
+      "author": "Baltasar Gracián",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0051",
+      "text": "Solo Dios basta.",
+      "author": "Teresa de Ávila",
+      "topic": "uplifting"
+    },
+    {
+      "id": "sp_0052",
+      "text": "No es recia la prueba cuando se espera en Dios.",
+      "author": "Teresa de Ávila",
+      "topic": "uplifting"
+    },
+    {
+      "id": "sp_0053",
+      "text": "Confianza y nada más.",
+      "author": "Teresa de Ávila",
+      "topic": "uplifting"
+    },
+    {
+      "id": "sp_0054",
+      "text": "Yo no estudio para saber más, sino para ignorar menos.",
+      "author": "Sor Juana Inés de la Cruz",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0055",
+      "text": "Hombres necios que acusáis a la mujer sin razón.",
+      "author": "Sor Juana Inés de la Cruz",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0056",
+      "text": "¿Qué humor puede ser más raro que el que, falto de consejo, él mismo empaña el espejo y siente que no está claro?",
+      "author": "Sor Juana Inés de la Cruz",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0057",
+      "text": "No soy yo quien pensáis, soy quien soy.",
+      "author": "Sor Juana Inés de la Cruz",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0058",
+      "text": "Si Aristóteles hubiera guisado, mucho más hubiera escrito.",
+      "author": "Sor Juana Inés de la Cruz",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0059",
+      "text": "El amor es el orgullo de los humildes.",
+      "author": "Gertrudis Gómez de Avellaneda",
+      "topic": "love"
+    },
+    {
+      "id": "sp_0060",
+      "text": "La fe es la fuerza del alma.",
+      "author": "Gertrudis Gómez de Avellaneda",
+      "topic": "uplifting"
+    },
+    {
+      "id": "sp_0061",
+      "text": "La mujer fuerte no teme al destino.",
+      "author": "Gertrudis Gómez de Avellaneda",
+      "topic": "uplifting"
+    },
+    {
+      "id": "sp_0062",
+      "text": "El corazón tiene razones que la razón no entiende.",
+      "author": "Gertrudis Gómez de Avellaneda",
+      "topic": "love"
+    },
+    {
+      "id": "sp_0063",
+      "text": "El dolor ennoblece cuando no envilece.",
+      "author": "Gertrudis Gómez de Avellaneda",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0064",
+      "text": "Nada hay más poderoso que un alma resuelta.",
+      "author": "Teresa de Ávila",
+      "topic": "uplifting"
+    },
+    {
+      "id": "sp_0065",
+      "text": "Quien a Dios tiene, nada le falta.",
+      "author": "Teresa de Ávila",
+      "topic": "uplifting"
+    },
+    {
+      "id": "sp_0066",
+      "text": "El amor no consiste en sentir grandes cosas, sino en tener gran desnudez y padecer por el amado.",
+      "author": "Teresa de Ávila",
+      "topic": "love"
+    },
+    {
+      "id": "sp_0067",
+      "text": "Más lágrimas se lloran por plegarias respondidas que por las no respondidas.",
+      "author": "Teresa de Ávila",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0068",
+      "text": "La verdad padece, pero no perece.",
+      "author": "Teresa de Ávila",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0069",
+      "text": "No hay inteligencia donde no hay paciencia.",
+      "author": "Teresa de Ávila",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0070",
+      "text": "El amor verdadero no se cansa ni se enfría.",
+      "author": "Teresa de Ávila",
+      "topic": "love"
+    },
+    {
+      "id": "sp_0071",
+      "text": "La vida se mide por el amor que se da.",
+      "author": "Teresa de Ávila",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0072",
+      "text": "Nada perturba tanto el alma como el apego.",
+      "author": "Teresa de Ávila",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0073",
+      "text": "El espíritu se fortalece en la dificultad.",
+      "author": "Teresa de Ávila",
+      "topic": "uplifting"
+    },
+    {
+      "id": "sp_0074",
+      "text": "No basta querer, es menester obrar.",
+      "author": "Sor Juana Inés de la Cruz",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0075",
+      "text": "La razón se oscurece cuando manda la soberbia.",
+      "author": "Sor Juana Inés de la Cruz",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0076",
+      "text": "El saber no ocupa lugar, pero exige valor.",
+      "author": "Sor Juana Inés de la Cruz",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0077",
+      "text": "La verdad no teme al entendimiento.",
+      "author": "Sor Juana Inés de la Cruz",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0078",
+      "text": "Pensar es también una forma de resistencia.",
+      "author": "Sor Juana Inés de la Cruz",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0079",
+      "text": "La libertad nace del conocimiento.",
+      "author": "Concepción Arenal",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0080",
+      "text": "Abrid escuelas y se cerrarán cárceles.",
+      "author": "Concepción Arenal",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0081",
+      "text": "La justicia no admite demora.",
+      "author": "Concepción Arenal",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0082",
+      "text": "El deber es la forma más alta del amor.",
+      "author": "Concepción Arenal",
+      "topic": "love"
+    },
+    {
+      "id": "sp_0083",
+      "text": "La dignidad no se concede, se ejerce.",
+      "author": "Concepción Arenal",
+      "topic": "uplifting"
+    },
+    {
+      "id": "sp_0084",
+      "text": "El dolor revela la verdad del carácter.",
+      "author": "Gertrudis Gómez de Avellaneda",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0085",
+      "text": "Amar es perder el miedo a uno mismo.",
+      "author": "Gertrudis Gómez de Avellaneda",
+      "topic": "love"
+    },
+    {
+      "id": "sp_0086",
+      "text": "La pasión también piensa.",
+      "author": "Gertrudis Gómez de Avellaneda",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0087",
+      "text": "El alma no envejece.",
+      "author": "Gertrudis Gómez de Avellaneda",
+      "topic": "uplifting"
+    },
+    {
+      "id": "sp_0088",
+      "text": "La verdad se defiende sola.",
+      "author": "Gertrudis Gómez de Avellaneda",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0089",
+      "text": "Nada es pequeño cuando se hace con amor.",
+      "author": "Teresa de Jesús",
+      "topic": "love"
+    },
+    {
+      "id": "sp_0090",
+      "text": "La constancia vence lo que la fuerza no alcanza.",
+      "author": "Teresa de Jesús",
+      "topic": "uplifting"
+    },
+    {
+      "id": "sp_0091",
+      "text": "La paz interior no depende del ruido exterior.",
+      "author": "Teresa de Jesús",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0092",
+      "text": "El silencio enseña lo que la prisa oculta.",
+      "author": "Teresa de Jesús",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0093",
+      "text": "La fe es caminar sin ver.",
+      "author": "Teresa de Jesús",
+      "topic": "uplifting"
+    },
+    {
+      "id": "sp_0094",
+      "text": "Más vale tarde que nunca.",
+      "author": "Refrán popular",
+      "topic": "uplifting"
+    },
+    {
+      "id": "sp_0095",
+      "text": "A mal tiempo, buena cara.",
+      "author": "Refrán popular",
+      "topic": "uplifting"
+    },
+    {
+      "id": "sp_0096",
+      "text": "No hay mal que por bien no venga.",
+      "author": "Refrán popular",
+      "topic": "uplifting"
+    },
+    {
+      "id": "sp_0097",
+      "text": "Quien a buen árbol se arrima, buena sombra le cobija.",
+      "author": "Refrán popular",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0098",
+      "text": "A palabras necias, oídos sordos.",
+      "author": "Refrán popular",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0099",
+      "text": "Ojos que no ven, corazón que no siente.",
+      "author": "Refrán popular",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0100",
+      "text": "No es oro todo lo que reluce.",
+      "author": "Refrán popular",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0101",
+      "text": "Del dicho al hecho hay mucho trecho.",
+      "author": "Refrán popular",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0102",
+      "text": "Más vale pájaro en mano que ciento volando.",
+      "author": "Refrán popular",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0103",
+      "text": "Quien siembra vientos, cosecha tempestades.",
+      "author": "Refrán popular",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0104",
+      "text": "En boca cerrada no entran moscas.",
+      "author": "Refrán popular",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0105",
+      "text": "Haz bien y no mires a quién.",
+      "author": "Refrán popular",
+      "topic": "uplifting"
+    },
+    {
+      "id": "sp_0106",
+      "text": "A caballo regalado no le mires el diente.",
+      "author": "Refrán popular",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0107",
+      "text": "Quien mucho promete, poco cumple.",
+      "author": "Refrán popular",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0108",
+      "text": "No por mucho madrugar amanece más temprano.",
+      "author": "Refrán popular",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0109",
+      "text": "Cada cual cosecha lo que siembra.",
+      "author": "Refrán popular",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0110",
+      "text": "A la tercera va la vencida.",
+      "author": "Refrán popular",
+      "topic": "uplifting"
+    },
+    {
+      "id": "sp_0111",
+      "text": "Más vale prevenir que curar.",
+      "author": "Refrán popular",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0112",
+      "text": "Quien no oye consejo, no llega a viejo.",
+      "author": "Refrán popular",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0113",
+      "text": "Más vale solo que mal acompañado.",
+      "author": "Refrán popular",
+      "topic": "wisdom"
+    },
+    {
+      "id": "sp_0114",
+      "text": "Cuando el río suena, agua lleva.",
+      "author": "Refrán popular",
+      "topic": "thought_provoking"
+    },
+    {
+      "id": "sp_0115",
+      "text": "A buen hambre no hay mal pan.",
+      "author": "Refrán popular",
+      "topic": "uplifting"
+    },
+    {
+      "id": "sp_0116",
+      "text": "Quien bien empieza, bien acaba.",
+      "author": "Refrán popular",
       "topic": "uplifting"
     }
   ]

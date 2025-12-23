@@ -32,7 +32,7 @@ import androidx.compose.runtime.Composable // An annotation that marks a functio
 import androidx.compose.runtime.LaunchedEffect // A coroutine scope that is tied to the lifecycle of a composable.
 import androidx.compose.runtime.SideEffect // A composable that runs a side effect after every recomposition.
 import androidx.compose.runtime.getValue // A delegate to get the value of a State object.
-import androidx.compose.runtime.mutableStateOf // Creates a mutable state object that is observable by Compose.
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember // Remembers a value across recompositions.
 import androidx.compose.runtime.setValue // A delegate to set the value of a State object.
 import androidx.compose.ui.Alignment // Used to specify the alignment of a composable within its parent.
@@ -241,7 +241,7 @@ private fun LunationDigits(
     digitSpacing: Dp
 ) {
     val n = abs(count).coerceAtMost(999) // Ensure the number is between 0 and 999.
-    var prevCount by remember { mutableStateOf(n) }
+    var prevCount by remember { mutableIntStateOf(n) }
     val direction = if (n >= prevCount) 1 else -1 // Determine the direction of the animation.
     SideEffect { prevCount = n } // Update the previous count after each recomposition.
     val s = n.toString().padStart(3, '0') // Format the number as a 3-digit string.

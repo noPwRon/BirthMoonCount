@@ -6,6 +6,7 @@ import android.content.Context // Provides access to application-specific resour
 import androidx.annotation.VisibleForTesting // An annotation to indicate that a method is public for testing purposes.
 import androidx.datastore.preferences.core.edit // Function to edit data in DataStore.
 import androidx.datastore.preferences.core.longPreferencesKey // Key for storing a Long value in DataStore.
+import androidx.datastore.preferences.core.stringPreferencesKey // Key for storing a String value in DataStore.
 import androidx.datastore.preferences.core.stringSetPreferencesKey // Key for storing a Set of Strings in DataStore.
 import androidx.datastore.preferences.preferencesDataStore // Function to create a DataStore instance.
 import com.google.gson.Gson // A library to convert JSON data to Kotlin objects and vice-versa.
@@ -19,6 +20,8 @@ import retrofit2.http.Url // An annotation for Retrofit to use a dynamic URL.
 import kotlinx.coroutines.Dispatchers // Provides different threads for running tasks (like network or disk operations).
 import kotlinx.coroutines.flow.first // Reads the current DataStore value once.
 import kotlinx.coroutines.withContext // A function to switch to a different thread for a block of code.
+import java.time.LocalDate
+import java.time.ZoneId
 import java.util.Locale // Locale for stable string normalization.
 import kotlin.random.Random // A utility for generating random numbers.
 
@@ -87,7 +90,7 @@ private interface GitHubContentService {
 
 /**
  * This data class holds a 'Quote' and a boolean flag to indicate its source.
- * This helps to differentiate between quotes that come from the app's local assets and those fetched from a remote URL.
+ * This helps to differentiate between quotes that come from the a<caret>pp's local assets and those fetched from a remote URL.
  *
  * @param quote The 'Quote' object itself.
  * @param isRemote True if the quote came from a remote URL, false otherwise.
@@ -113,24 +116,21 @@ class DailyQuoteRepository(
 
     // Remote pack list for live updates without rebuilding the app.
     private val remotePackBaseUrl = "https://raw.githubusercontent.com/noPwRon/BirthMoonCount/master/app/src/main/assets/"
-    private val remotePackFallbackFiles = listOf(
-        "custom_quotes.json",
-        "women_only.json",
-        "russian_culture.json",
-        "science.json"
-    )
     private val remoteRepoOwner = "noPwRon"
     private val remoteRepoName = "BirthMoonCount"
     private val remoteRepoPath = "app/src/main/assets"
     private val remoteRepoRef = "master"
     private val remoteFetchIntervalMs = 7L * 24L * 60L * 60L * 1000L
     private val lastFetchKey = longPreferencesKey("last_remote_fetch_ms")
+    private val lastAttemptKey = longPreferencesKey("last_remote_attempt_ms")
     private val usedKey = stringSetPreferencesKey("used_quote_ids")
+    private val lastQuoteDayKey = stringPreferencesKey("last_quote_day")
+    private val lastQuoteIdKey = stringPreferencesKey("last_quote_id")
 
     // A cache for the loaded quotes. This avoids reloading them from files and network every time.
     // It's nullable ('?') because it will be null until the quotes are loaded for the first time.
     private var cachedQuotes: List<SourcedQuote>? = null
-    private var lastFetchMs: Long? = null
+    private var lastAttemptMs: Long? = null
 
     /**
      * This sets up Retrofit. The 'by lazy' means that the code inside the block will only run
@@ -176,8 +176,8 @@ class DailyQuoteRepository(
      */
     private suspend fun loadQuotes(): List<SourcedQuote> = withContext(Dispatchers.IO) {
         val nowMs = System.currentTimeMillis()
-        val storedFetch = lastFetchMs ?: context.quoteCacheDataStore.data.first()[lastFetchKey] ?: 0L
-        val shouldFetchRemote = nowMs - storedFetch >= remoteFetchIntervalMs
+        val storedAttempt = lastAttemptMs ?: context.quoteCacheDataStore.data.first()[lastAttemptKey] ?: 0L
+        val shouldFetchRemote = nowMs - storedAttempt >= remoteFetchIntervalMs
         if (!shouldFetchRemote) {
             cachedQuotes?.let { return@withContext it }
         }
@@ -217,7 +217,9 @@ class DailyQuoteRepository(
         }
         // Fetch quotes from the remote repo for live updates (weekly).
         var remoteSuccess = false
+        var attemptedRemote = false
         if (shouldFetchRemote) {
+            attemptedRemote = true
             val remoteSources = fetchRemotePackSources()
             remoteSources.forEach { source ->
                 val url = source.url
@@ -235,11 +237,14 @@ class DailyQuoteRepository(
         // Save the combined list to the cache.
         val combined = combinedById.values.toList()
         cachedQuotes = combined
-        if (remoteSuccess) {
+        if (attemptedRemote) {
             context.quoteCacheDataStore.edit { prefs ->
-                prefs[lastFetchKey] = nowMs
+                prefs[lastAttemptKey] = nowMs
+                if (remoteSuccess) {
+                    prefs[lastFetchKey] = nowMs
+                }
             }
-            lastFetchMs = nowMs
+            lastAttemptMs = nowMs
         }
         // Return the combined list.
         combined
@@ -255,8 +260,16 @@ class DailyQuoteRepository(
         // Load all available quotes.
         val quotes = loadQuotes()
         if (quotes.isEmpty()) return@withContext null
+        val today = LocalDate.now(ZoneId.systemDefault())
+        val prefs = context.quoteCacheDataStore.data.first()
+        val storedDay = prefs[lastQuoteDayKey]
+        val storedId = prefs[lastQuoteIdKey]
+        if (storedDay == today.toString() && !storedId.isNullOrBlank()) {
+            val match = quotes.firstOrNull { it.quote.id == storedId }?.quote
+            if (match != null) return@withContext match
+        }
         // Avoid repeats by tracking used IDs locally.
-        val used = context.quoteCacheDataStore.data.first()[usedKey] ?: emptySet()
+        val used = prefs[usedKey] ?: emptySet()
         val unused = quotes.filterNot { it.quote.id in used }
         if (unused.isEmpty()) return@withContext allQuotesUsedQuote
 
@@ -264,6 +277,8 @@ class DailyQuoteRepository(
         if (next != null) {
             context.quoteCacheDataStore.edit { prefs ->
                 prefs[usedKey] = used + next.id
+                prefs[lastQuoteDayKey] = today.toString()
+                prefs[lastQuoteIdKey] = next.id
             }
         }
         next
@@ -342,8 +357,24 @@ class DailyQuoteRepository(
             return listed
         }
 
-        return remotePackFallbackFiles.map { file ->
-            RemotePackSource(file, remotePackBaseUrl + file)
+        return try {
+            context.assets.list("")?.filter { it.endsWith(".json") }?.map { file ->
+                RemotePackSource(file, remotePackBaseUrl + file)
+            } ?: emptyList()
+        } catch (e: Exception) {
+            emptyList()
         }
+    }
+
+    suspend fun findLongestQuote(): Quote? = withContext(Dispatchers.IO) {
+        val quotes = loadQuotes()
+        if (quotes.isEmpty()) return@withContext null
+        quotes.maxByOrNull { it.quote.text.length }?.quote
+    }
+
+    suspend fun findLongestAuthor(): Quote? = withContext(Dispatchers.IO) {
+        val quotes = loadQuotes()
+        if (quotes.isEmpty()) return@withContext null
+        quotes.maxByOrNull { it.quote.author.length }?.quote
     }
 }

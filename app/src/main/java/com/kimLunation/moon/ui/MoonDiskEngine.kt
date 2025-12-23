@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.asAndroidBitmap // An extension function to 
 import androidx.compose.ui.graphics.graphicsLayer // A modifier for applying graphical effects.
 import androidx.compose.ui.layout.ContentScale // Defines how to scale content within a composable.
 import androidx.compose.ui.res.imageResource // A function to load a drawable resource as a Compose ImageBitmap.
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp // A unit of measurement for density-independent pixels.
 import com.kimLunation.moon.R // A class that contains all the resource IDs for the project.
 import com.kimLunation.moon.astronomy.KimConfig // A configuration file for astronomy calculations.
@@ -97,9 +98,11 @@ private const val MOON_SHADER_SRC = """// These are "uniforms" - variables that 
  */
 @Composable
 fun MoonDiskEngine(
-    modifier: Modifier = Modifier.size(260.dp),
+    modifier: Modifier = Modifier,
+    diskSize: Dp = 260.dp,
     phaseOverrideFraction: Double? = null // An optional value to manually set the moon's phase for debugging.
 ) {
+    val sizedModifier = modifier.size(diskSize)
     // --- Time State ---
     // We keep track of the current time and update it every minute to keep the astronomy calculations fresh.
     var now by remember { mutableStateOf(Instant.now()) }
@@ -168,7 +171,7 @@ fun MoonDiskEngine(
     // Check again if we can use the shader.
     if (Build.VERSION.SDK_INT >= 33 && runtimeShader != null) {
         // If so, we use a 'Canvas' to draw a circle with our shader.
-        Canvas(modifier = modifier) {
+        Canvas(modifier = sizedModifier) {
             // Before drawing, we update the 'resolution' uniform to the actual size of our canvas.
             runtimeShader.setFloatUniform(
                 "resolution", size.width, size.height
@@ -182,7 +185,7 @@ fun MoonDiskEngine(
         Image(
             bitmap = moonBitmap,
             contentDescription = "Moon",
-            modifier = modifier
+            modifier = sizedModifier
                 .clip(CircleShape) // Clip the square image to a circle.
                 // We can still apply the correct orientation.
                 .graphicsLayer {
