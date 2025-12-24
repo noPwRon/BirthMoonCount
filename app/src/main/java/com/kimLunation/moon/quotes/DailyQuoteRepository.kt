@@ -16,6 +16,7 @@ import com.google.gson.Strictness
 import com.google.gson.stream.JsonReader
 import com.google.gson.stream.JsonToken
 import okhttp3.ResponseBody
+import okio.Buffer
 import retrofit2.Retrofit // A library for making network requests (like fetching data from the internet).
 import retrofit2.converter.gson.GsonConverterFactory // A converter for Retrofit to use Gson for JSON processing.
 import retrofit2.http.GET // An annotation for Retrofit to specify an HTTP GET request.
@@ -229,7 +230,7 @@ class DailyQuoteRepository(
                 val url = definition.url(remotePackBaseUrl)
                 runCatching {
                     val body = quoteService.fetchPack(url)
-                    val bytes = body.bytes()
+                    val bytes = readResponseBytes(body) ?: return@runCatching
                     val pack = parseRemotePack(bytes, definition)
                     if (pack != null) {
                         val packId = pack.packId ?: definition.fileName.substringBeforeLast('.')
@@ -358,6 +359,22 @@ class DailyQuoteRepository(
         if (!hash.equals(definition.sha256, ignoreCase = true)) return null
         val json = bytes.toString(Charsets.UTF_8)
         return parseQuotePack(json)
+    }
+
+    private fun readResponseBytes(body: ResponseBody): ByteArray? = body.use { response ->
+        val length = response.contentLength()
+        if (length > MAX_PACK_BYTES) return null
+        val source = response.source()
+        val buffer = Buffer()
+        var total = 0L
+        while (true) {
+            val read = source.read(buffer, 8192)
+            if (read == -1L) break
+            total += read
+            if (total > MAX_PACK_BYTES) return null
+        }
+        if (total == 0L) return null
+        return buffer.readByteArray()
     }
 
     private fun parseQuotePack(json: String): QuotePack? {

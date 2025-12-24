@@ -732,6 +732,14 @@ fun MoonScene() {
                 val journalButtonX =  321.dp
                 // val journalButtonY = animatedY + scaledScrollHeight + journalButtonSpacing - 10.dp
                 val journalButtonY =  65.dp
+                val journalButtonScale by animateFloatAsState(
+                    targetValue = if (journalVisible) 1.08f else 1f,
+                    label = "journalButtonScale"
+                )
+                val journalButtonRotation by animateFloatAsState(
+                    targetValue = if (journalVisible) -6f else 0f,
+                    label = "journalButtonRotation"
+                )
 
                 // When open, allow tap or upward swipe anywhere to dismiss.
                 if (quoteVisible) {
@@ -799,6 +807,11 @@ fun MoonScene() {
                     onClick = { journalVisible = true },
                     modifier = Modifier
                         .offset(x = journalButtonX, y = journalButtonY)
+                        .graphicsLayer {
+                            scaleX = journalButtonScale
+                            scaleY = journalButtonScale
+                            rotationZ = journalButtonRotation
+                        }
                         .zIndex(2f),
                     size = journalButtonSize
                 )
@@ -1090,7 +1103,7 @@ fun MoonScene() {
                 },
                 onReview = { journalReviewVisible = true },
                 onClose = { journalVisible = false },
-                saveEnabled = journalBody.isNotBlank(),
+                saveEnabled = true,
                 readOnly = false,
                 engraveNonce = journalEngraveNonce,
                 modifier = Modifier.zIndex(3f)

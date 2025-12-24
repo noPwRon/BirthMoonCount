@@ -26,9 +26,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.DisableSelection // Prevent selection on decorative labels.
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -52,6 +52,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -119,35 +120,66 @@ fun JewelButton(
     isToggled: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    size: Dp = 24.dp,
-    enabled: Boolean = true
+    buttonSize: Dp = 24.dp,
+    enabled: Boolean = true,
+    activeColor: Color = Color(0xFFB00020)
 ) {
-    val goldDark = Color(0xFFC8A048)
-    val goldLight = Color(0xFFF8E0A0)
-    val redDark = Color(0xFFB00020)
-    val redLight = Color(0xFFE06060)
-
-    val animatedTopColor by animateColorAsState(
-        targetValue = if (isToggled) redLight else goldLight,
-        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
-    )
-    val animatedBottomColor by animateColorAsState(
-        targetValue = if (isToggled) redDark else goldDark,
-        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
+    val brassDark = Color(0xFF7A5726)
+    val brassLight = Color(0xFFD2A65C)
+    val glowBlue = Color(0xFF6AB7FF)
+    val toggleProgress by animateFloatAsState(
+        targetValue = if (isToggled) 1f else 0f,
+        animationSpec = tween(durationMillis = 280, easing = FastOutSlowInEasing),
+        label = "jewelToggle"
     )
 
     Box(
         modifier = modifier
-            .size(size)
+            .size(buttonSize)
             .clip(CircleShape)
             .clickable(enabled = enabled, onClick = onClick)
-            .background(
+            .border(width = 1.dp, color = brassDark, shape = CircleShape)
+    ) {
+        Canvas(modifier = Modifier.matchParentSize()) {
+            val radius = size.minDimension / 2f
+            drawCircle(
                 brush = Brush.verticalGradient(
-                    colors = listOf(animatedTopColor, animatedBottomColor)
-                )
+                    colors = listOf(brassLight, brassDark)
+                ),
+                radius = radius,
+                center = center
             )
-            .border(width = 1.dp, color = goldDark, shape = CircleShape)
-    )
+            val baseGlow = if (enabled) 0.32f else 0.24f
+            val activeStrength = baseGlow + 0.68f * toggleProgress
+            val rimThickness = radius * 0.1f
+            val innerRadius = radius - rimThickness
+            val coreColor = activeColor
+
+            drawCircle(
+                color = glowBlue.copy(alpha = 0.18f * activeStrength),
+                radius = radius - rimThickness * 0.5f,
+                center = center,
+                style = Stroke(width = rimThickness * 0.6f)
+            )
+            drawCircle(
+                color = coreColor.copy(alpha = 0.85f * activeStrength),
+                radius = innerRadius,
+                center = center
+            )
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.22f * activeStrength),
+                        Color.Transparent
+                    ),
+                    center = Offset(size.width * 0.35f, size.height * 0.35f),
+                    radius = innerRadius * 0.9f
+                ),
+                radius = innerRadius,
+                center = center
+            )
+        }
+    }
 }
 
 /**
@@ -270,11 +302,36 @@ fun JournalScreen(
                         fontWeight = FontWeight.SemiBold,
                         letterSpacing = 0.5.sp
                     )
-                    JewelButton(
-                        isToggled = isPeriod,
-                        onClick = onTogglePeriod,
-                        enabled = !readOnly
-                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        JewelButton(
+                            isToggled = isPeriod,
+                            onClick = onTogglePeriod,
+                            enabled = !readOnly,
+                            buttonSize = 22.dp,
+                            activeColor = Color(0xFFB00020)
+                        )
+                        JewelButton(
+                            isToggled = isGreenEvent,
+                            onClick = onToggleGreenEvent,
+                            enabled = !readOnly,
+                            buttonSize = 22.dp,
+                            activeColor = Color(0xFF2E7D32)
+                        )
+                        JewelButton(
+                            isToggled = isYellowEvent,
+                            onClick = onToggleYellowEvent,
+                            enabled = !readOnly,
+                            buttonSize = 22.dp,
+                            activeColor = Color(0xFFC9A21A)
+                        )
+                        JewelButton(
+                            isToggled = isBlueEvent,
+                            onClick = onToggleBlueEvent,
+                            enabled = !readOnly,
+                            buttonSize = 22.dp,
+                            activeColor = Color(0xFF2F6FB2)
+                        )
+                    }
                 }
                 Box(
                     modifier = Modifier
@@ -642,13 +699,7 @@ private fun JournalReviewEntryItem(
                 fontFamily = FontFamily.Serif,
                 fontWeight = FontWeight.SemiBold
             )
-            if (entry.isPeriod) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .background(Color(0xFFB00020), CircleShape)
-                )
-            }
+            EventTagStack(entry = entry)
         }
         Text(
             text = "${entry.phaseLabel} - ${entry.illuminationPercent}%",
@@ -685,6 +736,35 @@ private fun JournalReviewEntryItem(
                 color = subTextColor,
                 fontFamily = FontFamily.Serif,
                 fontSize = 12.sp
+            )
+        }
+    }
+}
+
+@Composable
+private fun EventTagStack(
+    entry: JournalEntry,
+    modifier: Modifier = Modifier
+) {
+    val tags = buildList {
+        if (entry.isPeriod) add(Color(0xFFB00020))
+        if (entry.isGreenEvent) add(Color(0xFF2E7D32))
+        if (entry.isYellowEvent) add(Color(0xFFC9A21A))
+        if (entry.isBlueEvent) add(Color(0xFF2F6FB2))
+    }
+    if (tags.isEmpty()) return
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+        horizontalAlignment = Alignment.End
+    ) {
+        tags.forEach { color ->
+            JewelButton(
+                isToggled = true,
+                onClick = {},
+                enabled = false,
+                buttonSize = 12.dp,
+                activeColor = color
             )
         }
     }
