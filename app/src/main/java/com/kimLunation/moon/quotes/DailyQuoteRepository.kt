@@ -25,7 +25,6 @@ import kotlinx.coroutines.Dispatchers // Provides different threads for running 
 import kotlinx.coroutines.flow.first // Reads the current DataStore value once.
 import kotlinx.coroutines.withContext // A function to switch to a different thread for a block of code.
 import java.io.StringReader
-import java.security.MessageDigest
 import java.time.LocalDate
 import java.time.ZoneId
 import java.util.Locale // Locale for stable string normalization.
@@ -101,37 +100,32 @@ private data class SourcedQuote(
 class DailyQuoteRepository(
     private val context: Context
 ) {
-    private data class RemotePackDefinition(val fileName: String, val sha256: String) {
+    private data class RemotePackDefinition(val fileName: String) {
         fun url(baseUrl: String): String = baseUrl + fileName
     }
 
     // Remote pack list for live updates without rebuilding the app.
     private val remoteRepoOwner = "noPwRon"
     private val remoteRepoName = "BirthMoonCount"
-    private val remoteRepoCommit = "2af7c6977a268eaf91f4744601d939ebd16543e9"
+    private val remoteRepoCommit = "master"
     private val remoteRepoPath = "app/src/main/assets"
     private val remotePackBaseUrl =
         "https://raw.githubusercontent.com/$remoteRepoOwner/$remoteRepoName/$remoteRepoCommit/$remoteRepoPath/"
     private val remotePackDefinitions = listOf(
         RemotePackDefinition(
-            fileName = "custom_quotes.json",
-            sha256 = "663855456831400be189e8c08ecd415c977fe61aa265ce34c0cd2c4f3abcd02a"
+            fileName = "custom_quotes.json"
         ),
         RemotePackDefinition(
-            fileName = "russian_culture.json",
-            sha256 = "c5330c9a742f1c9bbb641f96906e7984d66850bd01f2a12dadb3c4efb7539a74"
+            fileName = "russian_culture.json"
         ),
         RemotePackDefinition(
-            fileName = "science.json",
-            sha256 = "308cd56104bd72dd10a4423b2a92d5a332079ea55806a792edc5ff493101cf47"
+            fileName = "science.json"
         ),
         RemotePackDefinition(
-            fileName = "spanish_culture.json",
-            sha256 = "59ca0673023e7ab06890fe0277701e473e1c7344c2d5eb7258b60b8407656b19"
+            fileName = "spanish_culture.json"
         ),
         RemotePackDefinition(
-            fileName = "women_only.json",
-            sha256 = "3b73f9269422179232327c15dc685995e4bb20f86e12e21ca5d178fb9dd9efe8"
+            fileName = "women_only.json"
         )
     )
     private val remoteFetchIntervalMs = 7L * 24L * 60L * 60L * 1000L
@@ -355,8 +349,6 @@ class DailyQuoteRepository(
 
     private fun parseRemotePack(bytes: ByteArray, definition: RemotePackDefinition): QuotePack? {
         if (bytes.isEmpty() || bytes.size > MAX_PACK_BYTES) return null
-        val hash = sha256Hex(bytes)
-        if (!hash.equals(definition.sha256, ignoreCase = true)) return null
         val json = bytes.toString(Charsets.UTF_8)
         return parseQuotePack(json)
     }
@@ -459,11 +451,6 @@ class DailyQuoteRepository(
         val value = runCatching { number.intValueExact() }.getOrNull() ?: return null
         if (value < 0 || value > maxValue) return null
         return value
-    }
-
-    private fun sha256Hex(bytes: ByteArray): String {
-        val digest = MessageDigest.getInstance("SHA-256").digest(bytes)
-        return digest.joinToString("") { byte -> "%02x".format(byte) }
     }
 
     suspend fun findLongestQuote(): Quote? = withContext(Dispatchers.IO) {
