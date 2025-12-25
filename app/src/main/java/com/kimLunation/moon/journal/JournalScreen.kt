@@ -126,6 +126,7 @@ fun JewelButton(
 ) {
     val brassDark = Color(0xFF7A5726)
     val brassLight = Color(0xFFD2A65C)
+    val burntBrassBorder = Color(0xFF4A2E12)
     val glowBlue = Color(0xFF6AB7FF)
     val toggleProgress by animateFloatAsState(
         targetValue = if (isToggled) 1f else 0f,
@@ -138,7 +139,7 @@ fun JewelButton(
             .size(buttonSize)
             .clip(CircleShape)
             .clickable(enabled = enabled, onClick = onClick)
-            .border(width = 1.dp, color = brassDark, shape = CircleShape)
+            .border(width = 1.dp, color = burntBrassBorder, shape = CircleShape)
     ) {
         Canvas(modifier = Modifier.matchParentSize()) {
             val radius = size.minDimension / 2f
@@ -210,7 +211,7 @@ fun JournalScreen(
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
-    val overlayColor = Color(0xFF0B0B0B).copy(alpha = 0.78f)
+    val scrimColor = Color(0xFF0B0B0B).copy(alpha = 0.78f)
     val textColor = Color(0xFFE8D9B8)
     val subTextColor = Color(0xFFC9B38A)
     val borderColor = textColor.copy(alpha = 0.35f)
@@ -232,7 +233,7 @@ fun JournalScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(overlayColor)
+            .background(scrimColor)
     ) {
         Column(
             modifier = Modifier
@@ -296,7 +297,7 @@ fun JournalScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "Entry",
+                        text = "Mind Palace",
                         color = textColor,
                         fontFamily = FontFamily.Serif,
                         fontWeight = FontWeight.SemiBold,
@@ -484,25 +485,59 @@ fun JournalReviewScreen(
     entries: List<JournalEntry>,
     density: FloatArray,
     recency: FloatArray,
+    periodDensity: FloatArray,
+    periodRecency: FloatArray,
+    greenDensity: FloatArray,
+    greenRecency: FloatArray,
+    yellowDensity: FloatArray,
+    yellowRecency: FloatArray,
+    blueDensity: FloatArray,
+    blueRecency: FloatArray,
     gridSize: Int,
     latestPoint: MoodPoint?,
     onExport: (List<JournalEntry>) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val overlayColor = Color(0xFF0B0B0B).copy(alpha = 0.78f)
+    val scrimColor = Color(0xFF0B0B0B).copy(alpha = 0.78f)
     val textColor = Color(0xFFE8D9B8)
     val subTextColor = Color(0xFFC9B38A)
     val borderColor = textColor.copy(alpha = 0.3f)
     val labelColor = Color(0xFFF1E2BE)
     val listState = rememberLazyListState()
     var selectedEntry by remember { mutableStateOf<JournalEntry?>(null) }
+    var selectedOverlay by remember { mutableStateOf<MoodOverlay?>(null) }
     val exportEnabled = entries.isNotEmpty()
+    val overlayRed = Color(0xFFB00020)
+    val overlayGreen = Color(0xFF2E7D32)
+    val overlayYellow = Color(0xFFC9A21A)
+    val overlayBlue = Color(0xFF2F6FB2)
+    val overlayDensity = when (selectedOverlay) {
+        MoodOverlay.Period -> periodDensity
+        MoodOverlay.Green -> greenDensity
+        MoodOverlay.Yellow -> yellowDensity
+        MoodOverlay.Blue -> blueDensity
+        null -> density
+    }
+    val overlayRecency = when (selectedOverlay) {
+        MoodOverlay.Period -> periodRecency
+        MoodOverlay.Green -> greenRecency
+        MoodOverlay.Yellow -> yellowRecency
+        MoodOverlay.Blue -> blueRecency
+        null -> recency
+    }
+    val overlayTint = when (selectedOverlay) {
+        MoodOverlay.Period -> overlayRed
+        MoodOverlay.Green -> overlayGreen
+        MoodOverlay.Yellow -> overlayYellow
+        MoodOverlay.Blue -> overlayBlue
+        null -> null
+    }
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(overlayColor)
+            .background(scrimColor)
     ) {
         Column(
             modifier = Modifier.fillMaxSize()
@@ -598,13 +633,56 @@ fun JournalReviewScreen(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text(
-                        text = "Mood terrain",
-                        color = textColor,
-                        fontFamily = FontFamily.Serif,
-                        fontWeight = FontWeight.SemiBold,
-                        letterSpacing = 1.sp
-                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Mood terrain",
+                            color = textColor,
+                            fontFamily = FontFamily.Serif,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = 1.sp,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            JewelButton(
+                                isToggled = selectedOverlay == MoodOverlay.Period,
+                                onClick = {
+                                    selectedOverlay = if (selectedOverlay == MoodOverlay.Period) null else MoodOverlay.Period
+                                },
+                                buttonSize = 18.dp,
+                                activeColor = overlayRed
+                            )
+                            JewelButton(
+                                isToggled = selectedOverlay == MoodOverlay.Green,
+                                onClick = {
+                                    selectedOverlay = if (selectedOverlay == MoodOverlay.Green) null else MoodOverlay.Green
+                                },
+                                buttonSize = 18.dp,
+                                activeColor = overlayGreen
+                            )
+                            JewelButton(
+                                isToggled = selectedOverlay == MoodOverlay.Yellow,
+                                onClick = {
+                                    selectedOverlay = if (selectedOverlay == MoodOverlay.Yellow) null else MoodOverlay.Yellow
+                                },
+                                buttonSize = 18.dp,
+                                activeColor = overlayYellow
+                            )
+                            JewelButton(
+                                isToggled = selectedOverlay == MoodOverlay.Blue,
+                                onClick = {
+                                    selectedOverlay = if (selectedOverlay == MoodOverlay.Blue) null else MoodOverlay.Blue
+                                },
+                                buttonSize = 18.dp,
+                                activeColor = overlayBlue
+                            )
+                        }
+                    }
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -612,10 +690,11 @@ fun JournalReviewScreen(
                             .padding(12.dp)
                     ) {
                         MoodTerrainMap(
-                            density = density,
-                            recency = recency,
+                            density = overlayDensity,
+                            recency = overlayRecency,
                             gridSize = gridSize,
                             latestPoint = latestPoint,
+                            overlayColor = overlayTint,
                             modifier = Modifier.fillMaxSize()
                         )
                         Text(
@@ -862,18 +941,26 @@ private fun JournalEntryDetailSheet(
     }
 }
 
+private enum class MoodOverlay {
+    Period,
+    Green,
+    Yellow,
+    Blue
+}
+
 @Composable
 private fun MoodTerrainMap(
     density: FloatArray,
     recency: FloatArray,
     gridSize: Int,
     latestPoint: MoodPoint?,
+    overlayColor: Color? = null,
     modifier: Modifier = Modifier
 ) {
     val gridColor = Color(0xFFE8D9B8).copy(alpha = 0.08f)
     val axisColor = Color(0xFFE8D9B8).copy(alpha = 0.3f)
     val oldColor = Color(0xFF9C8F7A)
-    val recencyColor = Color(0xFF4BAE9A)
+    val recencyColor = overlayColor ?: Color(0xFF4BAE9A)
     val markerColor = Color(0xFFF1E2BE)
 
     Canvas(modifier = modifier) {

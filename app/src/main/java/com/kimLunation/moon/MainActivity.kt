@@ -1028,18 +1028,45 @@ fun MoonScene() {
             }
         }
         if (journalVisible && journalReviewVisible) {
+            val gridSize = journalReviewViewModel.gridSize
+            val baseRecency = if (journalRecencyPreviewEnabled) {
+                buildRecencyPreview(journalReviewViewModel.density, gridSize)
+            } else {
+                journalReviewViewModel.recency
+            }
+            val periodRecency = if (journalRecencyPreviewEnabled) {
+                buildRecencyPreview(journalReviewViewModel.periodDensity, gridSize)
+            } else {
+                journalReviewViewModel.periodRecency
+            }
+            val greenRecency = if (journalRecencyPreviewEnabled) {
+                buildRecencyPreview(journalReviewViewModel.greenDensity, gridSize)
+            } else {
+                journalReviewViewModel.greenRecency
+            }
+            val yellowRecency = if (journalRecencyPreviewEnabled) {
+                buildRecencyPreview(journalReviewViewModel.yellowDensity, gridSize)
+            } else {
+                journalReviewViewModel.yellowRecency
+            }
+            val blueRecency = if (journalRecencyPreviewEnabled) {
+                buildRecencyPreview(journalReviewViewModel.blueDensity, gridSize)
+            } else {
+                journalReviewViewModel.blueRecency
+            }
             JournalReviewScreen(
                 entries = journalReviewViewModel.entries,
                 density = journalReviewViewModel.density,
-                recency = if (journalRecencyPreviewEnabled) {
-                    buildRecencyPreview(
-                        journalReviewViewModel.density,
-                        journalReviewViewModel.gridSize
-                    )
-                } else {
-                    journalReviewViewModel.recency
-                },
-                gridSize = journalReviewViewModel.gridSize,
+                recency = baseRecency,
+                periodDensity = journalReviewViewModel.periodDensity,
+                periodRecency = periodRecency,
+                greenDensity = journalReviewViewModel.greenDensity,
+                greenRecency = greenRecency,
+                yellowDensity = journalReviewViewModel.yellowDensity,
+                yellowRecency = yellowRecency,
+                blueDensity = journalReviewViewModel.blueDensity,
+                blueRecency = blueRecency,
+                gridSize = gridSize,
                 latestPoint = journalReviewViewModel.latestPoint,
                 onExport = { exportJournalEntries(it) },
                 onClose = { journalReviewVisible = false },

@@ -21,6 +21,22 @@ class JournalReviewViewModel(
         private set
     var recency by mutableStateOf(FloatArray(gridSize * gridSize))
         private set
+    var periodDensity by mutableStateOf(FloatArray(gridSize * gridSize))
+        private set
+    var periodRecency by mutableStateOf(FloatArray(gridSize * gridSize))
+        private set
+    var greenDensity by mutableStateOf(FloatArray(gridSize * gridSize))
+        private set
+    var greenRecency by mutableStateOf(FloatArray(gridSize * gridSize))
+        private set
+    var yellowDensity by mutableStateOf(FloatArray(gridSize * gridSize))
+        private set
+    var yellowRecency by mutableStateOf(FloatArray(gridSize * gridSize))
+        private set
+    var blueDensity by mutableStateOf(FloatArray(gridSize * gridSize))
+        private set
+    var blueRecency by mutableStateOf(FloatArray(gridSize * gridSize))
+        private set
     var latestPoint by mutableStateOf<MoodPoint?>(null)
         private set
 
@@ -33,19 +49,37 @@ class JournalReviewViewModel(
             val loaded = repository.getAllEntries()
             entries = loaded
             val shouldSeed = forceSeed || (loaded.isEmpty() && seedWhenEmpty)
-            if (shouldSeed) {
-                val points = generateSeedPoints(seedCount)
-                val grid = buildGrid(points, gridSize)
-                density = grid.density
-                recency = grid.recency
-                latestPoint = points.maxByOrNull { it.timestampMillis }
+            val points = if (shouldSeed) {
+                generateSeedPoints(seedCount)
             } else {
-                val points = loaded.map { MoodPoint(it.moodX, it.moodY, it.updatedAtMillis) }
-                val grid = buildGrid(points, gridSize)
-                density = grid.density
-                recency = grid.recency
-                latestPoint = points.maxByOrNull { it.timestampMillis }
+                loaded.map { MoodPoint(it.moodX, it.moodY, it.updatedAtMillis) }
             }
+            val grid = buildGrid(points, gridSize)
+            density = grid.density
+            recency = grid.recency
+            latestPoint = points.maxByOrNull { it.timestampMillis }
+
+            fun gridFor(predicate: (JournalEntry) -> Boolean): MoodGridStats {
+                val filtered = loaded.filter(predicate)
+                val filteredPoints = filtered.map { MoodPoint(it.moodX, it.moodY, it.updatedAtMillis) }
+                return buildGrid(filteredPoints, gridSize)
+            }
+
+            val periodGrid = gridFor { it.isPeriod }
+            periodDensity = periodGrid.density
+            periodRecency = periodGrid.recency
+
+            val greenGrid = gridFor { it.isGreenEvent }
+            greenDensity = greenGrid.density
+            greenRecency = greenGrid.recency
+
+            val yellowGrid = gridFor { it.isYellowEvent }
+            yellowDensity = yellowGrid.density
+            yellowRecency = yellowGrid.recency
+
+            val blueGrid = gridFor { it.isBlueEvent }
+            blueDensity = blueGrid.density
+            blueRecency = blueGrid.recency
         }
     }
 

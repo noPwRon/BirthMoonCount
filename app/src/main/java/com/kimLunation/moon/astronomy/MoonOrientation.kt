@@ -18,18 +18,20 @@ object MoonOrientation {
 
     /**
      * Calculates the rotation angle (in degrees) needed to orient a standard Moon texture (which is typically North-up)
-     * so that its terminator (the light/dark line) correctly aligns with the Sun's position in the sky.
+     * so that its terminator (the light/dark line) matches the local sky view.
+     *
+     * This accounts for the observer's latitude/longitude by applying the parallactic angle, so the bright limb
+     * matches what you see on the horizon (with south at the bottom of a portrait phone).
      *
      * @param now The 'Instant' of observation.
-     * @param obsLatDeg The observer's latitude in degrees. (This is currently unused because we are using a geocentric approximation,
-     *                  which assumes the observer is at the center of the Earth. This is accurate enough for this purpose).
-     * @param obsLonDeg The observer's longitude in degrees. (Also unused for the same reason).
+     * @param obsLatDeg The observer's latitude in degrees.
+     * @param obsLonDeg The observer's longitude in degrees (east-positive).
      * @return The rotation angle in degrees. This value can be used to rotate the Moon's image.
      */
     fun terminatorRotationDegSkyMode(
         now: Instant,
-        @Suppress("UNUSED_PARAMETER") obsLatDeg: Double,
-        @Suppress("UNUSED_PARAMETER") obsLonDeg: Double
+        obsLatDeg: Double,
+        obsLonDeg: Double
     ): Double {
 
         // Step 1: Convert the time to a Julian Day (JD) and then to Julian Centuries (t).
@@ -105,11 +107,20 @@ object MoonOrientation {
                 sin(moonDec) * cos(sunDec) * cos(sunRA - moonRA)
         val chi = atan2(numer, denom)
 
-        // Step 6: Return the result.
-        // The calculated angle 'chi' is measured counter-clockwise from North.
-        // On-screen rotations are often clockwise, so we might need to negate the angle.
-        // This function returns -chi in degrees, which can be directly used for rotation.
-        return Math.toDegrees(-chi)
+        // Step 6: Apply the parallactic angle to shift from celestial north to the local vertical.
+        val lat = Math.toRadians(obsLatDeg)
+        val lst = localSiderealTimeRad(jd, obsLonDeg)
+        val hourAngle = wrapRadians(lst - moonRA)
+        val parallactic = atan2(
+            sin(hourAngle),
+            tan(lat) * cos(moonDec) - sin(moonDec) * cos(hourAngle)
+        )
+
+        val localChi = chi - parallactic
+
+        // Step 7: Return the result.
+        // The calculated angle is measured counter-clockwise from local vertical.
+        return normalizeDegrees(Math.toDegrees(localChi) + 90.0)
     }
 
     /**
@@ -119,5 +130,30 @@ object MoonOrientation {
      */
     private fun julianDay(now: Instant): Double {
         return (now.toEpochMilli() / 86400000.0) + 2440587.5
+    }
+
+    private fun localSiderealTimeRad(jd: Double, lonDeg: Double): Double {
+        val t = (jd - 2451545.0) / 36525.0
+        val gmstDeg = 280.46061837 +
+                360.98564736629 * (jd - 2451545.0) +
+                0.000387933 * t * t -
+                (t * t * t) / 38710000.0
+        val lstDeg = (gmstDeg + lonDeg) % 360.0
+        val normalized = ((lstDeg % 360.0) + 360.0) % 360.0
+        return Math.toRadians(normalized)
+    }
+
+    private fun wrapRadians(angle: Double): Double {
+        val twoPi = 2.0 * Math.PI
+        var wrapped = angle % twoPi
+        if (wrapped <= -Math.PI) wrapped += twoPi
+        if (wrapped > Math.PI) wrapped -= twoPi
+        return wrapped
+    }
+
+    private fun normalizeDegrees(angle: Double): Double {
+        var normalized = angle % 360.0
+        if (normalized < 0.0) normalized += 360.0
+        return normalized
     }
 }
