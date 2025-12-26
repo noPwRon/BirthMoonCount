@@ -497,9 +497,9 @@ fun MoonScene() {
             DebugHudElement.COMPASS_DETAIL_LOWER to HudLayerTransform(offset = DpOffset(0.dp, 35.dp), scale = 0.4f),
             DebugHudElement.DIGITS to HudLayerTransform(offset = DpOffset(278.dp, 110.dp), scale = 1.05f),
             DebugHudElement.LUNATION_BORDER to HudLayerTransform(offset = DpOffset(270.dp, 105.dp),scale = 0.95f),
-            DebugHudElement.LUNATION_LABEL to HudLayerTransform(offset = DpOffset(240.dp, 80.dp), scale = 0.5f),
-            DebugHudElement.ILLUMINATION_LABEL to HudLayerTransform(offset = DpOffset(55.dp, 80.dp), scale = 0.5f),
-            DebugHudElement.MOON_IN_LABEL to HudLayerTransform(offset = DpOffset((-10).dp, 80.dp), scale = 0.5f)
+            DebugHudElement.LUNATION_LABEL to HudLayerTransform(offset = DpOffset(240.dp, 80.dp), scale = 0.6f),
+            DebugHudElement.ILLUMINATION_LABEL to HudLayerTransform(offset = DpOffset(55.dp, 80.dp), scale = 0.6f),
+            DebugHudElement.MOON_IN_LABEL to HudLayerTransform(offset = DpOffset((-10).dp, 80.dp), scale = 0.6f)
         )
     }
 
