@@ -1,6 +1,7 @@
 {
   "packId": "custom_quotes_v1",
   "packVersion": 1,
+  "packWeight": 1,
   "messages": [
     {
       "id": "cu_0001",
@@ -19,6 +20,30 @@
       "text": "I'm sorry I am a man.",
       "author": "Jeremy Guido (: ",
       "topic": "Personal"
+    },
+    {
+      "id": "cu_0004",
+      "text": "These quotes will only display once but they are updated in the repo when I think of you.",
+      "author": "Jeremy Guido",
+      "topic": "Personal"
+    },
+    {
+      "id": "cu_0005",
+      "text": "This project was inspired by a mechanical version of the moon phase clock I am designing.",
+      "author": "Jeremy Guido",
+      "topic": "Love"
+    },
+    {
+      "id": "cu_0006",
+      "text": "If you ever want some other kind of functionality added, just let me know.",
+      "author": "Jeremy Guido",
+      "topic": "Personal"
+    },
+    {
+      "id": "cu_0007",
+      "text": "You are a Brat sometimes, don't stop.",
+      "author": "Jeremy Guido",
+      "topic": "Personal"
     }
-  ]
-}
+    ]
+  }

@@ -28,7 +28,6 @@ import java.io.StringReader
 import java.security.MessageDigest
 import java.time.LocalDate
 import java.time.ZoneId
-import java.util.Locale // Locale for stable string normalization.
 import kotlin.random.Random // A utility for generating random numbers.
 
 /**
@@ -60,6 +59,7 @@ private val Context.quoteCacheDataStore by preferencesDataStore(name = "quote_ca
 private data class QuotePack(
     val packId: String? = null,
     val packVersion: Int? = null,
+    val packWeight: Int = 1,
     val messages: List<Quote> = emptyList()
 )
 
@@ -88,7 +88,8 @@ private interface QuoteService {
 private data class SourcedQuote(
     val quote: Quote,
     val isRemote: Boolean,
-    val packId: String?
+    val packId: String?,
+    val packWeight: Int
 )
 
 /**
@@ -105,14 +106,17 @@ class DailyQuoteRepository(
         fun url(baseUrl: String): String = baseUrl + fileName
     }
 
+    private data class RemoteManifest(val packs: List<RemotePackDefinition>)
+
     // Remote pack list for live updates without rebuilding the app.
     private val remoteRepoOwner = "noPwRon"
     private val remoteRepoName = "BirthMoonCount"
-    private val remoteRepoCommit = "2af7c6977a268eaf91f4744601d939ebd16543e9"
+    private val remoteRepoRef = "master"
     private val remoteRepoPath = "app/src/main/assets"
     private val remotePackBaseUrl =
-        "https://raw.githubusercontent.com/$remoteRepoOwner/$remoteRepoName/$remoteRepoCommit/$remoteRepoPath/"
-    private val remotePackDefinitions = listOf(
+        "https://raw.githubusercontent.com/$remoteRepoOwner/$remoteRepoName/$remoteRepoRef/$remoteRepoPath/"
+    private val remoteManifestFileName = "packs.json"
+    private val fallbackRemotePackDefinitions = listOf(
         RemotePackDefinition(
             fileName = "custom_quotes.json",
             sha256 = "663855456831400be189e8c08ecd415c977fe61aa265ce34c0cd2c4f3abcd02a"
@@ -215,7 +219,10 @@ class DailyQuoteRepository(
                     val pack = parseQuotePack(json)
                     if (pack != null) {
                         val packId = pack.packId ?: file.substringBeforeLast('.')
-                        val quotes = pack.messages.map { SourcedQuote(it, isRemote = false, packId = packId) }
+                        val packWeight = pack.packWeight
+                        val quotes = pack.messages.map {
+                            SourcedQuote(it, isRemote = false, packId = packId, packWeight = packWeight)
+                        }
                         addQuotes(quotes, preferRemote = false)
                     }
                 }
@@ -226,7 +233,8 @@ class DailyQuoteRepository(
         var attemptedRemote = false
         if (shouldFetchRemote) {
             attemptedRemote = true
-            remotePackDefinitions.forEach { definition ->
+            val remoteDefinitions = fetchRemoteManifest() ?: fallbackRemotePackDefinitions
+            remoteDefinitions.forEach { definition ->
                 val url = definition.url(remotePackBaseUrl)
                 runCatching {
                     val body = quoteService.fetchPack(url)
@@ -234,8 +242,10 @@ class DailyQuoteRepository(
                     val pack = parseRemotePack(bytes, definition)
                     if (pack != null) {
                         val packId = pack.packId ?: definition.fileName.substringBeforeLast('.')
+                        val packWeight = pack.packWeight
                         val quotes = pack.messages.map {
-                            SourcedQuote(it.copy(weight = maxOf(1, it.weight)), isRemote = true, packId = packId)
+                            val quote = it.copy(weight = maxOf(1, it.weight))
+                            SourcedQuote(quote, isRemote = true, packId = packId, packWeight = packWeight)
                         }
                         addQuotes(quotes, preferRemote = true)
                         remoteSuccess = true
@@ -321,36 +331,60 @@ class DailyQuoteRepository(
     @VisibleForTesting
     private fun pickWeighted(candidates: List<SourcedQuote>): Quote? {
         if (candidates.isEmpty()) return null
-        // Create a list of pairs, where each pair is a quote and its calculated weight.
-        val weights = candidates.map {
-            val packWeight = packWeightFor(it.packId)
-            it to packWeight
-        }
-        // Calculate the total of all weights.
-        val total = weights.sumOf { it.second }
-        // Get a random number between 0 and the total weight.
+        val byPack = candidates.groupBy { it.packId ?: "" }
+        val packs = byPack.values.toList()
+        val total = packs.sumOf { it.size * it.first().packWeight }
         var r = Random.nextInt(total)
-        // Loop through the quotes and their weights.
-        for ((item, w) in weights) {
-            // Subtract the current quote's weight from the random number.
-            r -= w
-            // If the random number is now less than 0, we've found our quote.
-            if (r < 0) return item.quote
+        for (packQuotes in packs) {
+            r -= packQuotes.size * packQuotes.first().packWeight
+            if (r < 0) {
+                val pick = packQuotes[Random.nextInt(packQuotes.size)]
+                return pick.quote
+            }
         }
-        // As a fallback (if something goes wrong with the loop), return the last quote.
-        return weights.last().first.quote
+        return packs.last().last().quote
     }
 
-    private fun packWeightFor(packId: String?): Int {
-        val key = packId?.lowercase(Locale.US) ?: return 1
-        return when {
-            key.startsWith("custom") -> 6
-            key.startsWith("women") -> 4
-            key.startsWith("russian") -> 3
-            key.startsWith("spanish") -> 3
-            key.startsWith("scientists") || key.startsWith("science") -> 2
-            else -> 1
+    private suspend fun fetchRemoteManifest(): List<RemotePackDefinition>? = runCatching {
+        val url = remotePackBaseUrl + remoteManifestFileName
+        val body = quoteService.fetchPack(url)
+        val bytes = readResponseBytes(body, MAX_MANIFEST_BYTES.toLong()) ?: return@runCatching null
+        val manifest = parseRemoteManifest(bytes) ?: return@runCatching null
+        manifest.packs
+    }.getOrNull()
+
+    private fun parseRemoteManifest(bytes: ByteArray): RemoteManifest? {
+        if (bytes.isEmpty() || bytes.size > MAX_MANIFEST_BYTES) return null
+        val json = bytes.toString(Charsets.UTF_8)
+        if (json.isBlank() || json.length > MAX_MANIFEST_CHARS) return null
+        val reader = JsonReader(StringReader(json)).apply {
+            setStrictness(Strictness.STRICT)
         }
+        val element = try {
+            JsonParser.parseReader(reader)
+        } catch (_: Exception) {
+            return null
+        }
+        if (reader.peek() != JsonToken.END_DOCUMENT) return null
+        if (!element.isJsonObject) return null
+        val obj = element.asJsonObject
+        if (!hasOnlyKeys(obj, MANIFEST_KEYS)) return null
+        val packs = obj.get("packs") ?: return null
+        if (!packs.isJsonArray) return null
+        val array = packs.asJsonArray
+        if (array.size() < 1 || array.size() > MAX_MANIFEST_PACKS) return null
+        val definitions = ArrayList<RemotePackDefinition>(array.size())
+        for (entry in array) {
+            if (!entry.isJsonObject) return null
+            val packObj = entry.asJsonObject
+            if (!hasOnlyKeys(packObj, MANIFEST_PACK_KEYS)) return null
+            val fileName = readRequiredString(packObj, "fileName", MAX_FILE_NAME_LENGTH) ?: return null
+            if (fileName.contains('/') || fileName.contains('\\') || !fileName.endsWith(".json")) return null
+            val sha256 = readRequiredString(packObj, "sha256", MAX_SHA256_LENGTH) ?: return null
+            if (sha256.length != MAX_SHA256_LENGTH || !isHexString(sha256)) return null
+            definitions.add(RemotePackDefinition(fileName = fileName, sha256 = sha256))
+        }
+        return RemoteManifest(definitions)
     }
 
     private fun parseRemotePack(bytes: ByteArray, definition: RemotePackDefinition): QuotePack? {
@@ -361,9 +395,12 @@ class DailyQuoteRepository(
         return parseQuotePack(json)
     }
 
-    private fun readResponseBytes(body: ResponseBody): ByteArray? = body.use { response ->
+    private fun readResponseBytes(
+        body: ResponseBody,
+        maxBytes: Long = MAX_PACK_BYTES.toLong()
+    ): ByteArray? = body.use { response ->
         val length = response.contentLength()
-        if (length > MAX_PACK_BYTES) return null
+        if (length > maxBytes) return null
         val source = response.source()
         val buffer = Buffer()
         var total = 0L
@@ -371,7 +408,7 @@ class DailyQuoteRepository(
             val read = source.read(buffer, 8192)
             if (read == -1L) break
             total += read
-            if (total > MAX_PACK_BYTES) return null
+            if (total > maxBytes) return null
         }
         if (total == 0L) return null
         return buffer.readByteArray()
@@ -402,6 +439,9 @@ class DailyQuoteRepository(
         if (packId != null && packId.isBlank()) return null
         val packVersion = readOptionalInt(obj, "packVersion", MAX_PACK_VERSION)
             ?: obj.get("packVersion")?.let { return null }
+        val packWeight = readOptionalInt(obj, "packWeight", MAX_PACK_WEIGHT)
+            ?: obj.get("packWeight")?.let { return null }
+        if (packWeight != null && packWeight !in 1..MAX_PACK_WEIGHT) return null
 
         val messages = obj.get("messages") ?: return null
         if (!messages.isJsonArray) return null
@@ -430,7 +470,12 @@ class DailyQuoteRepository(
             quotes.add(Quote(id = id, text = text, author = author, topic = topic, weight = weight))
         }
 
-        return QuotePack(packId = packId, packVersion = packVersion, messages = quotes)
+        return QuotePack(
+            packId = packId,
+            packVersion = packVersion,
+            packWeight = packWeight ?: 1,
+            messages = quotes
+        )
     }
 
     private fun hasOnlyKeys(obj: JsonObject, allowed: Set<String>): Boolean {
@@ -461,6 +506,14 @@ class DailyQuoteRepository(
         return value
     }
 
+    private fun isHexString(value: String): Boolean {
+        for (ch in value) {
+            val ok = (ch in '0'..'9') || (ch in 'a'..'f') || (ch in 'A'..'F')
+            if (!ok) return false
+        }
+        return true
+    }
+
     private fun sha256Hex(bytes: ByteArray): String {
         val digest = MessageDigest.getInstance("SHA-256").digest(bytes)
         return digest.joinToString("") { byte -> "%02x".format(byte) }
@@ -481,6 +534,9 @@ class DailyQuoteRepository(
 
 private const val MAX_PACK_BYTES = 256_000
 private const val MAX_PACK_CHARS = 256_000
+private const val MAX_MANIFEST_BYTES = 16_000
+private const val MAX_MANIFEST_CHARS = 16_000
+private const val MAX_MANIFEST_PACKS = 64
 private const val MAX_QUOTES_PER_PACK = 512
 private const val MAX_ID_LENGTH = 64
 private const val MAX_TEXT_LENGTH = 512
@@ -489,6 +545,11 @@ private const val MAX_TOPIC_LENGTH = 32
 private const val MAX_PACK_ID_LENGTH = 64
 private const val MAX_PACK_VERSION = 999
 private const val MAX_WEIGHT = 10
+private const val MAX_PACK_WEIGHT = 10
+private const val MAX_FILE_NAME_LENGTH = 128
+private const val MAX_SHA256_LENGTH = 64
 
-private val PACK_KEYS = setOf("packId", "packVersion", "messages")
+private val PACK_KEYS = setOf("packId", "packVersion", "packWeight", "messages")
 private val QUOTE_KEYS = setOf("id", "text", "author", "topic", "weight")
+private val MANIFEST_KEYS = setOf("packs")
+private val MANIFEST_PACK_KEYS = setOf("fileName", "sha256")

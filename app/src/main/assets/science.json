@@ -1,6 +1,7 @@
 {
   "packId": "scientists_engineers_v1",
   "packVersion": 1,
+  "packWeight": 2,
   "messages": [
     {
       "id": "sc_0001",

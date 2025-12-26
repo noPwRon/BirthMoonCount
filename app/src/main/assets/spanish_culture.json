@@ -1,6 +1,7 @@
 {
   "packId": "spanish_culture_v1",
   "packVersion": 2,
+  "packWeight": 2,
   "messages": [
     {
       "id": "sp_0001",

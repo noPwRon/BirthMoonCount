@@ -1,6 +1,7 @@
 {
   "packId": "women_only_v1",
   "packVersion": 1,
+  "packWeight": 2,
   "messages": [
     {
       "id": "wo_0001",

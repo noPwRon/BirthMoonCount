@@ -46,6 +46,18 @@ android {
     sourceSets["main"].assets.srcDirs("src/main/assets", "../Data")
 }
 
+val pythonExec = (findProperty("pythonExec") as? String) ?: "python"
+val generatePacksManifest by tasks.registering(Exec::class) {
+    workingDir = rootProject.projectDir
+    commandLine(pythonExec, "tools/build_packs_manifest.py")
+    inputs.dir(rootProject.file("app/src/main/assets"))
+    outputs.file(rootProject.file("app/src/main/assets/packs.json"))
+}
+
+tasks.named("preBuild") {
+    dependsOn(generatePacksManifest)
+}
+
 dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.lifecycle.viewmodel.ktx)

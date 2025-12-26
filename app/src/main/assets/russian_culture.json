@@ -1,6 +1,7 @@
 {
   "packId": "russian_culture_v1",
   "packVersion": 1,
+  "packWeight": 2,
   "messages": [
     { "id": "ru_0001", "text": "Love hinders death. Love is life.", "author": "Leo Tolstoy", "topic": "love" },
     { "id": "ru_0002", "text": "All, everything that I understand, I understand only because I love.", "author": "Leo Tolstoy", "topic": "love" },
