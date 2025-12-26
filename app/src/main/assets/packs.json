@@ -1,0 +1,24 @@
+{
+  "packs": [
+    {
+      "fileName": "custom_quotes.json",
+      "sha256": "bd0d7784afd80cfdf7192e9e5d30dd0e06034c5fd0d235f498adef136744d1cc"
+    },
+    {
+      "fileName": "russian_culture.json",
+      "sha256": "40b96726eeee34d7ff241c03191710c6db7dc706c234871005ad2ed6e6dfbccf"
+    },
+    {
+      "fileName": "science.json",
+      "sha256": "53877743c0c4b3808098c5a1cfa83d155ae4705ce0a5440f65422df0c6bea771"
+    },
+    {
+      "fileName": "spanish_culture.json",
+      "sha256": "29bad09bd7f18a762b11911ce1f047f7e6ae43b82db24eb9a9bf08515cc3b3d0"
+    },
+    {
+      "fileName": "women_only.json",
+      "sha256": "cecc5af1fc269b081a2e713cf4b8d70479913efa63841ff51ee931eb061ece93"
+    }
+  ]
+}

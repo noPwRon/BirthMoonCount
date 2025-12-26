@@ -371,7 +371,7 @@ fun MoonScene() {
     // Load the initial daily quote when the scene enters composition.
     LaunchedEffect(Unit) {
         todayQuote = quoteRepository.getQuoteForToday()
-        quoteVisible = todayQuote != null
+        quoteVisible = false
         quoteDay = currentLocalDay
     }
 
@@ -387,7 +387,6 @@ fun MoonScene() {
     LaunchedEffect(currentLocalDay) {
         if (quoteDay != null && quoteDay != currentLocalDay) {
             todayQuote = quoteRepository.getQuoteForToday()
-            quoteVisible = todayQuote != null
             quoteDay = currentLocalDay
         }
     }
@@ -497,7 +496,7 @@ fun MoonScene() {
             DebugHudElement.COMPASS_DETAIL_LOWER to HudLayerTransform(offset = DpOffset(0.dp, 35.dp), scale = 0.4f),
             DebugHudElement.DIGITS to HudLayerTransform(offset = DpOffset(278.dp, 110.dp), scale = 1.05f),
             DebugHudElement.LUNATION_BORDER to HudLayerTransform(offset = DpOffset(270.dp, 105.dp),scale = 0.95f),
-            DebugHudElement.LUNATION_LABEL to HudLayerTransform(offset = DpOffset(240.dp, 80.dp), scale = 0.6f),
+            DebugHudElement.LUNATION_LABEL to HudLayerTransform(offset = DpOffset(236.dp, 80.dp), scale = 0.6f),
             DebugHudElement.ILLUMINATION_LABEL to HudLayerTransform(offset = DpOffset(55.dp, 80.dp), scale = 0.6f),
             DebugHudElement.MOON_IN_LABEL to HudLayerTransform(offset = DpOffset((-10).dp, 80.dp), scale = 0.6f)
         )
@@ -711,7 +710,6 @@ fun MoonScene() {
                 // Precompute scroll positions for minimized/expanded states.
                 val scrollMaxWidth = maxWidth.coerceAtMost(360.dp)
                 val journalButtonSize = 108.dp
-                val journalButtonSpacing = 8.dp
                 val density = LocalDensity.current
                 var scrollSizePx by remember { mutableStateOf(IntSize.Zero) }
                 val closedScale = 0.10f
@@ -727,11 +725,8 @@ fun MoonScene() {
                 val animatedX by animateDpAsState(if (quoteVisible) openX else closedX, label = "quoteX")
                 val animatedY by animateDpAsState(if (quoteVisible) openY else closedY, label = "quoteY")
                 val animatedScale by animateFloatAsState(if (quoteVisible) openScale else closedScale, label = "quoteScale")
-                val scaledScrollHeight = with(density) { (scrollSizePx.height * animatedScale).toDp() }
-                // val journalButtonX = animatedX + scrollMaxWidth - journalButtonSize + 37.dp
-                val journalButtonX =  321.dp
-                // val journalButtonY = animatedY + scaledScrollHeight + journalButtonSpacing - 10.dp
-                val journalButtonY =  65.dp
+                val journalButtonX = 321.dp
+                val journalButtonY = 65.dp
                 val journalButtonScale by animateFloatAsState(
                     targetValue = if (journalVisible) 1.08f else 1f,
                     label = "journalButtonScale"
@@ -813,7 +808,8 @@ fun MoonScene() {
                             rotationZ = journalButtonRotation
                         }
                         .zIndex(2f),
-                    size = journalButtonSize
+                    size = journalButtonSize,
+                    tapTargetSize = 72.dp
                 )
             }
         }

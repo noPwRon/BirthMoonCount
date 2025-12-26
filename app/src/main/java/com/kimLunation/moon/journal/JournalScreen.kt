@@ -95,23 +95,29 @@ fun JournalGlyphButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    size: Dp = 36.dp
+    size: Dp = 36.dp,
+    tapTargetSize: Dp = size
 ) {
     val iconAlpha = if (enabled) 1f else 0.4f
     val iconSize = size * 0.6f
-    IconButton(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = modifier.size(size)
+    Box(
+        modifier = modifier.size(size),
+        contentAlignment = Alignment.Center
     ) {
-        Icon(
-            painter = painterResource(id = iconResId),
-            contentDescription = contentDescription,
-            tint = Color.Unspecified,
-            modifier = Modifier
-                .size(iconSize)
-                .alpha(iconAlpha)
-        )
+        IconButton(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = Modifier.size(tapTargetSize)
+        ) {
+            Icon(
+                painter = painterResource(id = iconResId),
+                contentDescription = contentDescription,
+                tint = Color.Unspecified,
+                modifier = Modifier
+                    .size(iconSize)
+                    .alpha(iconAlpha)
+            )
+        }
     }
 }
 
