@@ -41,6 +41,7 @@ private const val MOON_SHADER_SRC = """// These are "uniforms" - variables that 
     uniform shader uTexture;   // The 2D texture map of the Moon's surface.
     uniform float2 resolution; // The width and height of the canvas we are drawing on.
     uniform float3 sunDir;     // A 3D vector pointing from the Moon towards the Sun.
+    uniform float texRotation; // Rotation (radians) for the texture map around the view axis.
     uniform float2 texSize;    // The width and height of the texture map.
 
     const float PI = 3.14159265359; // The mathematical constant PI.
@@ -63,11 +64,18 @@ private const val MOON_SHADER_SRC = """// These are "uniforms" - variables that 
         // We calculate the z-component using the Pythagorean theorem (z = sqrt(1 - x^2 - y^2)).
         float z = sqrt(1.0 - rSq);
         float3 normal = float3(uv.x, uv.y, z);
+        float cosR = cos(texRotation);
+        float sinR = sin(texRotation);
+        float3 texNormal = float3(
+            normal.x * cosR - normal.y * sinR,
+            normal.x * sinR + normal.y * cosR,
+            normal.z
+        );
         
         // Step 4: Map the 3D point on the sphere to a 2D point on our flat texture map.
         // This is called Spherical Mapping or an Inverse Equirectangular Projection.
-        float lon = atan(normal.x, normal.z); // Longitude
-        float lat = asin(normal.y);           // Latitude
+        float lon = atan(texNormal.x, texNormal.z); // Longitude
+        float lat = asin(texNormal.y);              // Latitude
         
         // Convert the longitude (-PI to PI) and latitude (PI/2 to -PI/2) to texture coordinates (0 to 1).
         float u = 0.5 + lon / (2.0 * PI);
@@ -100,18 +108,24 @@ private const val MOON_SHADER_SRC = """// These are "uniforms" - variables that 
 fun MoonDiskEngine(
     modifier: Modifier = Modifier,
     diskSize: Dp = 260.dp,
-    phaseOverrideFraction: Double? = null // An optional value to manually set the moon's phase for debugging.
+    phaseOverrideFraction: Double? = null, // An optional value to manually set the moon's phase for debugging.
+    nowOverride: Instant? = null,
+    observerLatDeg: Double = KimConfig.OBS_LAT,
+    observerLonDeg: Double = KimConfig.OBS_LON
 ) {
     val sizedModifier = modifier.size(diskSize)
     // --- Time State ---
     // We keep track of the current time and update it every minute to keep the astronomy calculations fresh.
-    var now by remember { mutableStateOf(Instant.now()) }
-    LaunchedEffect(Unit) {
+    var internalNow by remember { mutableStateOf(Instant.now()) }
+    // Use external time when provided so time-lapse drives orientation updates.
+    LaunchedEffect(nowOverride) {
+        if (nowOverride != null) return@LaunchedEffect
         while (isActive) {
-            now = Instant.now()
+            internalNow = Instant.now()
             delay(60000) // Pause for one minute.
         }
     }
+    val now = nowOverride ?: internalNow
 
     // --- Astronomical Calculations ---
     // 'remember' is used here so that these expensive calculations are only redone when 'now' changes.
@@ -120,11 +134,18 @@ fun MoonDiskEngine(
     val phaseFraction = phaseOverrideFraction?.coerceIn(0.0, 1.0) ?: phaseResult.fraction
 
     // Calculate the orientation of the moon's terminator.
-    val orientationDeg = remember(now) {
+    val limbOrientationDeg = remember(now, observerLatDeg, observerLonDeg) {
         MoonOrientation.terminatorRotationDegSkyMode(
             now,
-            KimConfig.OBS_LAT,
-            KimConfig.OBS_LON
+            observerLatDeg,
+            observerLonDeg
+        )
+    }
+    val axisRotationDeg = remember(now, observerLatDeg, observerLonDeg) {
+        MoonOrientation.axisRotationDegSkyMode(
+            now,
+            observerLatDeg,
+            observerLonDeg
         )
     }
 
@@ -133,11 +154,15 @@ fun MoonDiskEngine(
     val moonBitmap = ImageBitmap.imageResource(id = R.drawable.moon_color_2k)
 
     // This 'remember' block prepares the RuntimeShader. It will only rerun if the inputs (bitmap, phase, or orientation) change.
-    val runtimeShader = remember(moonBitmap, phaseFraction, orientationDeg) {
+    val runtimeShader = remember(moonBitmap, phaseFraction, limbOrientationDeg, axisRotationDeg) {
         // RuntimeShaders are only available on Android 13 (API 33) and newer.
         if (Build.VERSION.SDK_INT >= 33) {
             // Step 1: Convert the orientation angle (Chi) from degrees to radians.
-            val chi = Math.toRadians(-orientationDeg)
+            val localChiDeg = limbOrientationDeg - 90.0
+            val chi = Math.toRadians(localChiDeg)
+            // Rotate texture CCW for the sky view (screen Y is down).
+            val textureRotation = Math.toRadians(-axisRotationDeg)
+
 
             // Step 2: Calculate the Phase Angle (Psi) from the illumination fraction (k).
             // This is the reverse of the formula k = (1 + cos(Psi))/2.
@@ -146,8 +171,8 @@ fun MoonDiskEngine(
 
             // Step 3: Compute the 3D direction vector to the Sun.
             // This vector is what the shader will use to determine the lighting.
-            val sunX = sin(psi) * sin(chi)
-            val sunY = sin(psi) * cos(chi)
+            val sunX = sin(psi) * -sin(chi)
+            val sunY = sin(psi) * -cos(chi)
             val sunZ = cos(psi)
 
             // Step 4: Set up the RuntimeShader.
@@ -160,6 +185,7 @@ fun MoonDiskEngine(
             shader.setFloatUniform("resolution", androidBitmap.width.toFloat(), androidBitmap.height.toFloat()) // Initial guess for size.
             shader.setFloatUniform("texSize", androidBitmap.width.toFloat(), androidBitmap.height.toFloat())
             shader.setFloatUniform("sunDir", sunX.toFloat(), sunY.toFloat(), sunZ.toFloat())
+            shader.setFloatUniform("texRotation", textureRotation.toFloat())
 
             shader // Return the configured shader.
         } else {
@@ -189,7 +215,7 @@ fun MoonDiskEngine(
                 .clip(CircleShape) // Clip the square image to a circle.
                 // We can still apply the correct orientation.
                 .graphicsLayer {
-                    rotationZ = orientationDeg.toFloat()
+                    rotationZ = (-axisRotationDeg).toFloat()
                 },
             contentScale = ContentScale.Crop
         )

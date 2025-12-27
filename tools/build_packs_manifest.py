@@ -60,6 +60,7 @@ def main() -> int:
 
     assets_dir = Path(args.assets_dir).expanduser().resolve()
     output_path = Path(args.output).expanduser().resolve()
+    # Exclude the manifest itself to avoid self-referential hashes.
     excludes = {"packs.json"} | set(args.exclude)
 
     if not assets_dir.exists() or not assets_dir.is_dir():

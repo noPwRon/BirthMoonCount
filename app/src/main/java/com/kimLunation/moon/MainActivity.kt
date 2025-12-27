@@ -18,6 +18,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -30,6 +31,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
@@ -107,6 +109,10 @@ import kotlin.math.PI
 import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.random.Random
+
+private const val REAL_TIME_TICK_MS = 60_000L
+private const val TIME_LAPSE_TICK_MS = 1_000L
+private const val TIME_LAPSE_SPEED_MULTIPLIER = 1_440L
 
 /**
  * Keys for HUD layer transforms used by the debug layout controls.
@@ -328,18 +334,19 @@ fun MoonScene() {
 
     // Live clock used for daily quote and moon calculations.
     var now by remember { mutableStateOf(Instant.now()) }
+    var timeLapseEnabled by remember { mutableStateOf(false) }
     val currentLocalDay = remember(now) { LocalDateTime.ofInstant(now, ZoneId.systemDefault()).toLocalDate() }
     val quoteRepository = remember { DailyQuoteRepository(context) }
     val journalRepository = remember { JournalRepository(context) }
     val journalReviewViewModel: JournalReviewViewModel =
         viewModel(factory = JournalReviewViewModelFactory(journalRepository))
     val journalExportGson = remember { GsonBuilder().setPrettyPrinting().create() }
+    var debugMenuEnabled by remember { mutableStateOf(false) } //This is where you turn the debug menu on and off
     var todayQuote by remember { mutableStateOf<Quote?>(null) }
     var quoteVisible by remember { mutableStateOf(false) }
     var quoteDebugMode by remember { mutableStateOf(false) }
     var quoteCycleEnabled by remember { mutableStateOf(false) }
     var quoteDay by remember { mutableStateOf<LocalDate?>(null) }
-    var debugMenuEnabled by remember { mutableStateOf(false) }
     var journalVisible by remember { mutableStateOf(false) }
     var journalReviewVisible by remember { mutableStateOf(false) }
     var journalReviewSeedEnabled by remember { mutableStateOf(false) }
@@ -376,10 +383,18 @@ fun MoonScene() {
     }
 
     // Keep time-based astronomy values up to date.
-    LaunchedEffect(Unit) {
+    LaunchedEffect(timeLapseEnabled) {
+        var simNow = Instant.now()
         while (isActive) {
-            now = Instant.now()
-            delay(60000)
+            // Time-lapse uses a shorter tick + multiplier so the sim clock stays stable.
+            val tickMs = if (timeLapseEnabled) TIME_LAPSE_TICK_MS else REAL_TIME_TICK_MS
+            simNow = if (timeLapseEnabled) {
+                simNow.plusMillis(tickMs * TIME_LAPSE_SPEED_MULTIPLIER)
+            } else {
+                Instant.now()
+            }
+            now = simNow
+            delay(tickMs)
         }
     }
 
@@ -654,7 +669,10 @@ fun MoonScene() {
         Box(modifier = Modifier.align(Alignment.Center)) {
             MoonDiskEngine(
                 diskSize = moonSizeDp.dp,
-                phaseOverrideFraction = phaseOverrideFraction
+                phaseOverrideFraction = phaseOverrideFraction,
+                nowOverride = now,
+                observerLatDeg = observerLat,
+                observerLonDeg = observerLon
             )
         }
 
@@ -816,11 +834,13 @@ fun MoonScene() {
 
         // Debug UI overlay.
         if (isDebuggable && debugMenuEnabled) {
+            val debugScrollState = rememberScrollState()
             Column(
                 modifier = Modifier
                     .align(Alignment.TopStart)
                     .padding(12.dp)
-                    .zIndex(2f),
+                    .zIndex(2f)
+                    .verticalScroll(debugScrollState),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Row(
@@ -833,6 +853,20 @@ fun MoonScene() {
                     )
                     Text(
                         text = "Debug Menu",
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontSize = 12.sp
+                    )
+                }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = timeLapseEnabled,
+                        onCheckedChange = { timeLapseEnabled = it }
+                    )
+                    Text(
+                        text = "Time lapse (24h in 1m)",
                         color = MaterialTheme.colorScheme.onSurface,
                         fontSize = 12.sp
                     )
