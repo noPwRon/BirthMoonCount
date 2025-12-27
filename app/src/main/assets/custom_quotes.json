@@ -4,6 +4,30 @@
   "packWeight": 1,
   "messages": [
     {
+      "id": "NI_0001",
+      "text": "Hi Kim, I hope this brings you as much joy as it has me creating it for you.",
+      "author": "Jeremy Guido",
+      "topic": "Welcome"
+    },
+    {
+      "id": "NI_0002",
+      "text": "Tap the scroll to see the daily quote.",
+      "author": "Jeremy Guido",
+      "topic": "Welcome"
+    },
+    {
+      "id": "NI_0003",
+      "text": "You can open the journal anytime to capture the night.",
+      "author": "Jeremy Guido",
+      "topic": "Welcome"
+    },
+    {
+      "id": "NI_0004",
+      "text": "The mood heatmap was really fun to create. I hope it brings you some use.",
+      "author": "Jeremy Guido",
+      "topic": "Welcome"
+    },
+    {
       "id": "cu_0001",
       "text": "I never suspected how much I would come to care for you, but I'm glad the world brought us together.",
       "author": "Jeremy Guido",
@@ -44,6 +68,12 @@
       "text": "You are a Brat sometimes, don't stop.",
       "author": "Jeremy Guido",
       "topic": "Personal"
+    },
+    {
+      "id": "cu_0008",
+      "text": "You and Bibi make the most amazing team.",
+      "author": "Jeremy Guido",
+      "topic": "Personal"
     }
-    ]
-  }
+  ]
+}

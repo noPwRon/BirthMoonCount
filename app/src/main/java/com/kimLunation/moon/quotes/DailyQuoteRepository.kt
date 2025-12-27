@@ -292,7 +292,17 @@ class DailyQuoteRepository(
         val unused = quotes.filterNot { it.quote.id in used }
         if (unused.isEmpty()) return@withContext allQuotesUsedQuote
 
-        val next = pickWeighted(unused)
+        val firstTime = unused.filter { it.quote.id.startsWith("NI_", ignoreCase = true) }
+        val next = if (firstTime.isNotEmpty()) {
+            // Consume welcome quotes in numeric order first.
+            val ordered = firstTime.sortedWith(
+                compareBy<SourcedQuote> { parseWelcomeIndex(it.quote.id) }
+                    .thenBy { it.quote.id }
+            )
+            ordered.first().quote
+        } else {
+            pickWeighted(unused)
+        }
         if (next != null) {
             context.quoteCacheDataStore.edit { prefs ->
                 prefs[usedKey] = used + next.id
@@ -504,6 +514,12 @@ class DailyQuoteRepository(
         val value = runCatching { number.intValueExact() }.getOrNull() ?: return null
         if (value < 0 || value > maxValue) return null
         return value
+    }
+
+    private fun parseWelcomeIndex(id: String): Int {
+        val parts = id.split('_')
+        val index = parts.lastOrNull()?.toIntOrNull() ?: return Int.MAX_VALUE
+        return index
     }
 
     private fun isHexString(value: String): Boolean {
